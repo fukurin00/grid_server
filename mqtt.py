@@ -3,6 +3,7 @@
 
 import paho.mqtt.client as mqtt
 import time
+import asyncio
 
 class Mqtt:
     def __init__(self, on_connect, on_disconnect, on_message, on_publish):
@@ -14,7 +15,7 @@ class Mqtt:
 
         self.client.connect("localhost", 1883, 60)  # 接続先は自分自身          
 
-    def run_mqtt(self):
+    async def run_mqtt(self):
         self.client.loop_start()    
         while 1:
             self.client.publish("/robot/1/newpath", 1.1)
@@ -47,6 +48,9 @@ def on_publish(client, userdata, mid):
 
 
 if __name__=="__main__":
+
+    loop = asyncio.get_event_loop()
+
     # MQTTの接続設定
-    mqtt = Mqtt()
-    mqtt.run_mqtt()
+    mqtt = Mqtt(on_connect=on_connect, on_disconnect=on_disconnect, on_message=on_message, on_publish=on_publish)
+    loop.run_until_complete(mqtt.run_mqtt())

@@ -4,17 +4,18 @@
 import numpy as np
 import yaml
 from PIL import Image
+import asyncio
 
 import grid 
 import mqtt as Mqtt
 
 def on_connect(client, userdata, flag, rc):
-        print("Connected with result code " + str(rc))  # 接続できた旨表示
-        client.subscribe("/robot/1/path")  # subするトピックを設定
-        client.subscribe("/robot/2/path")  # subするトピックを設定
+    print("Connected with result code " + str(rc))  # 接続できた旨表示
+    client.subscribe("/robot/1/path")  # subするトピックを設定
+    client.subscribe("/robot/2/path")  # subするトピックを設定
 
-        client.subscribe("/robot/1/pose")  
-        client.subscribe("/robot/2/pose")   
+    client.subscribe("/robot/1/pose")  
+    client.subscribe("/robot/2/pose")   
 
 
 # ブローカーが切断したときの処理
@@ -73,5 +74,9 @@ if __name__ == "__main__":
 
     read_map_image(yaml_file_name, map_file_name)
 
-    mqtt = Mqtt.Mqtt()
-    mqtt.run_mqtt()
+    global waypoints
+
+    loop = asyncio.get_event_loop()
+    
+    mqtt = Mqtt.Mqtt(on_connect=on_connect, on_disconnect=on_disconnect, on_message=on_message, on_publish=on_publish)
+    loop.run_until_complete(mqtt.run_mqtt())
