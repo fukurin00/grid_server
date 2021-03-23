@@ -6,16 +6,16 @@ import yaml
 from PIL import Image
 import asyncio
 
-import grid 
+import grid as Grid
 import mqtt as Mqtt
 
 def on_connect(client, userdata, flag, rc):
     print("Connected with result code " + str(rc))  # 接続できた旨表示
-    client.subscribe("/robot/1/path")  # subするトピックを設定
-    client.subscribe("/robot/2/path")  # subするトピックを設定
+    client.subscribe("/robot/path/1")  # subするトピックを設定
+    client.subscribe("/robot/path/2")  # subするトピックを設定
 
-    client.subscribe("/robot/1/pose")  
-    client.subscribe("/robot/2/pose")   
+    client.subscribe("/robot/pose/1")  
+    client.subscribe("/robot/pose/2")   
 
 
 # ブローカーが切断したときの処理
@@ -28,11 +28,20 @@ def on_message(client, userdata, msg):
     # msg.topicにトピック名が，msg.payloadに届いたデータ本体が入っている
     print("Received message '" + str(msg.payload) + "' on topic '" + msg.topic + "' with QoS " + str(msg.qos))
 
-    if str(msg.topic).startswith("/robot/"):
-        print(msg.payload)
+    topic = str(msg.topic)
+    if topic.startswith("/robot/"):
+        if topic.startswith("/robot/path"):
+            print(msg.payload)
+        elif topic.startswith("/robot/pose"):
+            print(msg.payload)
 
 def on_publish(client, userdata, mid):     
     print("publish: {0}".format(mid))
+
+
+def share_path(payload):
+    
+    pass
 
 
 def read_map_image(yaml_file_name, map_file_name):
@@ -74,7 +83,11 @@ if __name__ == "__main__":
 
     read_map_image(yaml_file_name, map_file_name)
 
+    global grid
+    grid = Grid.Grid(ox=ox, oy=oy, reso=0.5, rr=0.8)
+
     global waypoints
+    waypoints = dict()
 
     loop = asyncio.get_event_loop()
     
