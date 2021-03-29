@@ -2,7 +2,7 @@ import math
 import collections
 
 class Grid:
-    def __init__(self, ox, oy, reso, rr):
+    def __init__(self, ox, oy, reso):
         """
         Initialize grid map for a star planning
 
@@ -13,11 +13,8 @@ class Grid:
         """
 
         self.reso = reso
-        self.rr = rr
         self.obmap=None
-        self.calc_obstacle_map(ox, oy)
-
-        self.rreso = round(rr/(2*reso)) #aspect of robot/grid_size     
+        self.calc_obstacle_map(ox, oy)   
 
     class Node:
         def __init__(self, x, y, cost, pind):
@@ -31,7 +28,7 @@ class Grid:
                 self.cost) + "," + str(self.pind)
 
 
-    def calc_obstacle_map(self, ox, oy):
+    def calc_obstacle_map(self, ox, oy, rr):
         self.minx = round(min(ox))
         self.miny = round(min(oy))
         self.maxx = round(max(ox))
@@ -54,7 +51,7 @@ class Grid:
                 y = self.calc_xy_grid_position(iy, self.miny)
                 for iox, ioy in zip(ox, oy):
                     d = math.hypot(iox - x, ioy - y)
-                    if d <= self.rr:
+                    if d <= rr:
                         self.obmap[ix][iy] = True
                         break
         print("Completed calculating obstacle_map")
@@ -90,19 +87,20 @@ class Grid:
     def calc_grid_index(self, px, py):
         return (py - self.miny) * self.xwidth + (px - self.minx)
 
-    def calc_over_grid_index(self, px, py):
+    def calc_over_grid_index(self, px, py, rr):
+        #ロボットが占有するグリッドの取得
         overs = []
         ci = self.calc_grid_index(px, py)
         overs.append(ci)
 
         around = [-1,1,-1*self.xwidth, self.xwidth, -1*self.xwidth-1, -1*self.xwidth+1, self.xwidth-1, self.xwidth+1]
-        for i in range(self.rreso):
+        for i in range(round(rr/(2*self.reso))):
             for v in around:
                 ti = ci + (i+1)*v
                 if self.verify_grid(ti):
                     tpx, tpy = self.calc_grid_position(ti)
                     d = math.hypot(tpx-px, tpy-py)
-                    if d <= self.rr:
+                    if d <= rr:
                         overs.append(ti)
         return overs
 
