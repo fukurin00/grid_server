@@ -53,6 +53,8 @@ def read_map_image(yaml_file_name, map_file_name):
     resolution = map_info['resolution']
     origins = map_info['origin']
 
+    print(im[:,0])
+
     global ox
     global oy
     ox, oy = [], []
@@ -78,10 +80,11 @@ def read_map_image(yaml_file_name, map_file_name):
     print('Completed loading map')
 
 if __name__ == "__main__":
-    yaml_file_name = "../map/trusco_map_edited.yaml"
-    map_file_name = "../map/trusco_map_edited.pgm"
+    yaml_file_name = "../../map/trusco_map_edited.yaml"
+    map_file_name = "../../map/trusco_map_edited.pgm"
 
     read_map_image(yaml_file_name, map_file_name)
+    exit()
 
     global grid
     grid = Grid.Grid(ox=ox, oy=oy, reso=0.5, rr=0.8)

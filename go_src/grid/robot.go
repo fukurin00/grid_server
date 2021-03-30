@@ -1,8 +1,8 @@
 package grid
 
 import (
+	"encoding/json"
 	"fmt"
-	"json"
 	"log"
 
 	msg "example.com/msg"
@@ -20,6 +20,9 @@ type RobotStatus struct {
 	Velocity float64
 
 	EstPose []PoseUnix
+
+	Ox []float64
+	Oy []float64
 }
 
 type PoseUnix struct {
@@ -39,6 +42,10 @@ func NewRobot(id uint32, radius, vel float64) *RobotStatus {
 func (r *RobotStatus) UpdateVel(vel float64) {
 	r.Velocity = vel
 	r.calcPathTime()
+}
+
+func (r *RobotStatus) UpdateRadius(radius float64) {
+	r.Radius = radius
 }
 
 func (r *RobotStatus) UpdatePose(rcd *sxmqtt.MQTTRecord) {
@@ -84,3 +91,10 @@ func (r *RobotStatus) calcPathTime() {
 		r.EstPose = append(r.EstPose, estPose)
 	}
 }
+
+// func (r *RobotStatus) CalcGridArea(yamlFile string) {
+// 	mapConfig := msg.ReadImageYaml(yamlFile)
+// 	reso := mapConfig.Resolution
+// 	origins := mapConfig.Origin
+
+// }
