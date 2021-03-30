@@ -62,8 +62,8 @@ class Grid:
         return pos
 
     def calc_grid_position(self, index):
-        py = self.minx + round(index // self.xwidth) * self.reso
-        px = self.miny + index % self.xwidth * self.reso
+        py = self.miny + round(index // self.xwidth) * self.reso
+        px = self.minx + index % self.xwidth * self.reso
         return px,py
 
     def verify_grid(self, index):

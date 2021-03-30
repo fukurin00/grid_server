@@ -1,15 +1,20 @@
-package grid
+package robot
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 
+	grid "example.com/grid"
 	msg "example.com/msg"
 	sxmqtt "github.com/synerex/proto_mqtt"
 )
 
-var ()
+var (
+	gridReso float64 = 0.5
+	mapFile  string
+	yamlFile string
+)
 
 type RobotStatus struct {
 	Id   uint32
@@ -21,8 +26,7 @@ type RobotStatus struct {
 
 	EstPose []PoseUnix
 
-	Ox []float64
-	Oy []float64
+	RGrid *grid.Grid
 }
 
 type PoseUnix struct {
@@ -36,6 +40,10 @@ func NewRobot(id uint32, radius, vel float64) *RobotStatus {
 	s.Id = id
 	s.Radius = radius
 	s.Velocity = vel
+
+	s.RGrid = grid.NewGrid(gridReso)
+	s.RGrid.ReadMapImage(yamlFile, mapFile)
+	s.RGrid.CalcObjMap(radius)
 	return s
 }
 
@@ -78,9 +86,10 @@ func (r *RobotStatus) UpdatePath(rcd *sxmqtt.MQTTRecord) {
 
 func (r *RobotStatus) calcPathTime() {
 	r.EstPose = nil
+	currentPose := r.Pose.Pose
 	for _, pose := range r.Path.Poses {
 		//distance from current pose
-		dis := pose.Pose.Position.Distance(r.Pose.Pose.Position)
+		dis := pose.Pose.Position.Distance(currentPose.Position)
 		elap := dis / r.Velocity //est elaps time
 
 		estPose := PoseUnix{
@@ -89,6 +98,7 @@ func (r *RobotStatus) calcPathTime() {
 		}
 
 		r.EstPose = append(r.EstPose, estPose)
+		currentPose = pose.Pose
 	}
 }
 
