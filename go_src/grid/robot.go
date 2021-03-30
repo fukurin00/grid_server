@@ -36,6 +36,11 @@ func NewRobot(id uint32, radius, vel float64) *RobotStatus {
 	return s
 }
 
+func (r *RobotStatus) UpdateVel(vel float64) {
+	r.Velocity = vel
+	r.calcPathTime()
+}
+
 func (r *RobotStatus) UpdatePose(rcd *sxmqtt.MQTTRecord) {
 	var pose msg.PoseStamp
 	var id uint32
@@ -65,7 +70,7 @@ func (r *RobotStatus) UpdatePath(rcd *sxmqtt.MQTTRecord) {
 }
 
 func (r *RobotStatus) calcPathTime() {
-	r.EstPose = []PoseUnix
+	r.EstPose = nil
 	for _, pose := range r.Path.Poses {
 		//distance from current pose
 		dis := pose.Pose.Position.Distance(r.Pose.Pose.Position)
@@ -76,6 +81,6 @@ func (r *RobotStatus) calcPathTime() {
 			Unix: pose.Header.Stamp.CalcUnix() + elap,
 		}
 
-		r.EstPose = append(r.Est_Pose, estPose)
+		r.EstPose = append(r.EstPose, estPose)
 	}
 }
