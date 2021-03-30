@@ -20,3 +20,34 @@ func ReverseSlice(a []uint8) []uint8 {
 	}
 	return a
 }
+
+func CheckSpan(start, finish, target float64) bool {
+	if start <= target && target <= finish {
+		return true
+	}
+	return false
+}
+
+// check same component in list
+func CheckDuplicate(a, b []int) []int {
+	var dup []int
+	for _, aa := range a {
+		for _, bb := range b {
+			if aa == bb {
+				if !CheckSameCom(aa, dup) {
+					dup = append(dup, aa)
+				}
+			}
+		}
+	}
+	return dup
+}
+
+func CheckSameCom(t int, l []int) bool {
+	for _, a := range l {
+		if t == a {
+			return true
+		}
+	}
+	return false
+}
