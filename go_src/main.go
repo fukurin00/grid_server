@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
-	gridMod "github.com/fukurin00/grid_server/grid"
 	msg "github.com/fukurin00/grid_server/msg"
 	robot "github.com/fukurin00/grid_server/robot"
 	synerex "github.com/fukurin00/grid_server/synerex"
@@ -19,13 +20,9 @@ import (
 
 var (
 	robotList map[int]*robot.RobotStatus // robot list
+	yamlFile  string                     = "../map/trusco_map_edited.yaml"
+	mapFile   string                     = "../map/trusco_map_edited.pgm"
 )
-
-func init() {
-	robotList = make(map[int]*robot.RobotStatus)
-	robotList[1] = robot.NewRobot(1, 0.5, 3.0)
-	robotList[2] = robot.NewRobot(2, 1, 2.0)
-}
 
 func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 	//from MQTT broker
@@ -94,13 +91,20 @@ func publishState() {
 }
 
 func main() {
-	yamlFile := "../../map/trusco_map_edited.yaml"
-	mapFile := "../../map/trusco_map_edited.pgm"
+	_, fn, _, _ := runtime.Caller(1)
+	log.Print("starting", fn)
 
-	g := gridMod.NewGridNo() //create grid
-	g.ReadMapImage(yamlFile, mapFile)
+	wg := sync.WaitGroup{} //wait exit for gorouting
 
+	robotList = make(map[int]*robot.RobotStatus)
+	robotList[1] = robot.NewRobot(1, 0.5, 3.0, mapFile, yamlFile)
+	robotList[2] = robot.NewRobot(2, 1, 2.0, mapFile, yamlFile)
+
+	wg.Add(1)
 	synerex.RunSynerex()
 	go synerex.SubscribeMQTTSupply(synerex.Mqttclient, supplyMQTTCallback)
 	go publishState()
+
+	wg.Wait()
+	sxutil.CallDeferFunctions()
 }

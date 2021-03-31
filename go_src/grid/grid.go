@@ -48,6 +48,7 @@ func NewGrid(reso float64) *Grid {
 	return g
 }
 
+// Calculating Object Map on Grid
 func (g *Grid) CalcObjMap(rr float64) {
 	g.MaxX = int(math.Round(tools.MaxFloat(g.Ox)))
 	g.MaxY = int(math.Round(tools.MaxFloat(g.Oy)))
@@ -130,15 +131,15 @@ func (g Grid) CalcRobotGrid(x, y, rr float64) []int {
 	return overs
 }
 
-func (g *Grid) ReadMapImage(yamlFile, mapFile string) {
+func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 	mapConfig := msg.ReadImageYaml(yamlFile)
 	reso := mapConfig.Resolution
 	origins := mapConfig.Origin
-	log.Print(reso, origins)
+	log.Print("resolution:", reso, " origins:", origins)
 
 	file, err := os.Open(mapFile)
 	if err != nil {
-		log.Print(err)
+		return err
 	}
 	defer file.Close()
 
@@ -193,8 +194,8 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) {
 		}
 	}
 	log.Print(len(g.OList))
-	log.Print("complete loading map")
-
+	log.Print("complete loading map", mapFile)
+	return nil
 }
 
 type Node struct {

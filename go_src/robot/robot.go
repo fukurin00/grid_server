@@ -13,8 +13,6 @@ import (
 
 var (
 	gridReso float64 = 0.5
-	mapFile  string
-	yamlFile string
 )
 
 //RobotStatus robot information
@@ -37,7 +35,7 @@ type PoseUnix struct {
 }
 
 // robotstatus constructor
-func NewRobot(id uint32, radius, vel float64) *RobotStatus {
+func NewRobot(id uint32, radius, vel float64, mapFile, yamlFile string) *RobotStatus {
 	s := new(RobotStatus)
 
 	s.Id = id
@@ -45,7 +43,10 @@ func NewRobot(id uint32, radius, vel float64) *RobotStatus {
 	s.Velocity = vel
 
 	s.RGrid = grid.NewGrid(gridReso)
-	s.RGrid.ReadMapImage(yamlFile, mapFile)
+	err := s.RGrid.ReadMapImage(yamlFile, mapFile)
+	if err != nil {
+		log.Print("readmap error", err)
+	}
 	s.RGrid.CalcObjMap(radius)
 	return s
 }
