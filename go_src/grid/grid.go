@@ -143,13 +143,12 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 	}
 	defer file.Close()
 
-	imageData, imageType, err := image.Decode(file)
+	imageData, _, err := image.Decode(file)
 	if err != nil {
-		log.Print(err)
+		return err
 	}
 
-	log.Print(imageData.Bounds())
-	log.Print(imageType)
+	//log.Print(imageData.Bounds())
 
 	g.OList = nil
 	g.Ox = nil
@@ -193,7 +192,6 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 			insideWall = false
 		}
 	}
-	log.Print(len(g.OList))
 	log.Print("complete loading map", mapFile)
 	return nil
 }

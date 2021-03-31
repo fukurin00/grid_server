@@ -81,10 +81,10 @@ func publishState() {
 			if err != nil {
 				log.Print("json marshal error", err)
 			}
-			top := fmt.Sprintf("/robot/status/%d", &key)
+			top := fmt.Sprintf("/robot/status/%d", key)
 			serr := synerex.StatePublish(top, message)
 			if serr != nil {
-				log.Print(serr)
+				log.Print("state publish failure", serr)
 			}
 		}
 	}
