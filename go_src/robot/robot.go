@@ -1,3 +1,4 @@
+//package about robot status
 package robot
 
 import (
@@ -5,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	grid "example.com/grid"
-	msg "example.com/msg"
+	grid "github.com/fukurin00/grid_server/grid"
+	msg "github.com/fukurin00/grid_server/msg"
 	sxmqtt "github.com/synerex/proto_mqtt"
 )
 
@@ -16,6 +17,7 @@ var (
 	yamlFile string
 )
 
+//RobotStatus robot information
 type RobotStatus struct {
 	Id   uint32
 	Pose msg.PoseStamp
@@ -30,10 +32,11 @@ type RobotStatus struct {
 }
 
 type PoseUnix struct {
-	Pose msg.Pose
-	Unix float64
+	Pose msg.Pose `json:"pose"`
+	Unix float64  `json:"unix"`
 }
 
+// robotstatus constructor
 func NewRobot(id uint32, radius, vel float64) *RobotStatus {
 	s := new(RobotStatus)
 
@@ -56,6 +59,7 @@ func (r *RobotStatus) UpdateRadius(radius float64) {
 	r.Radius = radius
 }
 
+//UpdatePose update robot pose
 func (r *RobotStatus) UpdatePose(rcd *sxmqtt.MQTTRecord) {
 	var pose msg.PoseStamp
 	var id uint32
@@ -70,6 +74,7 @@ func (r *RobotStatus) UpdatePose(rcd *sxmqtt.MQTTRecord) {
 
 }
 
+//UpdatePath update robot path
 func (r *RobotStatus) UpdatePath(rcd *sxmqtt.MQTTRecord) {
 	var path msg.Path
 	var id uint32

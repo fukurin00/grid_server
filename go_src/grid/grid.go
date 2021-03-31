@@ -7,8 +7,8 @@ import (
 	"math"
 	"os"
 
-	msg "example.com/msg"
-	tools "example.com/tools"
+	msg "github.com/fukurin00/grid_server/msg"
+	tools "github.com/fukurin00/grid_server/tools"
 	_ "github.com/jbuchbinder/gopnm"
 )
 

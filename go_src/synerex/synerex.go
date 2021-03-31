@@ -1,3 +1,4 @@
+//synerex package for using with mqtt-gateway provider
 package synerex
 
 import (
@@ -16,15 +17,17 @@ import (
 	sxutil "github.com/synerex/synerex_sxutil"
 	"google.golang.org/protobuf/proto"
 
-	msg "example.com/msg"
+	msg "github.com/fukurin00/grid_server/msg"
 )
 
 var (
 	Nodesrv         = flag.String("nodesrv", "127.0.0.1:9990", "Node ID Server")
 	SxServerAddress string
 	Mu              sync.Mutex
+	Mqttclient      *sxutil.SXServiceClient
 )
 
+// Setup synerex
 func RunSynerex() {
 	flag.Parse()
 	go sxutil.HandleSigInt() //exit by Ctrl + C
@@ -42,10 +45,9 @@ func RunSynerex() {
 
 	client := sxutil.GrpcConnectServer(srv)
 	argJSON1 := fmt.Sprintf("{Client:GRID_MQTT}")
-	var mqttclient = sxutil.NewSXServiceClient(client, pbase.MQTT_GATEWAY_SVC, argJSON1)
+	Mqttclient = sxutil.NewSXServiceClient(client, pbase.MQTT_GATEWAY_SVC, argJSON1)
 
-	log.Print("Start Subscribe")
-	go SubscribeMQTTSupply(mqttclient)
+	log.Print("running synerex")
 }
 
 func reconnectClient(client *sxutil.SXServiceClient) {
@@ -69,14 +71,43 @@ func reconnectClient(client *sxutil.SXServiceClient) {
 	Mu.Unlock()
 }
 
-func SubscribeMQTTSupply(client *sxutil.SXServiceClient) {
+// start subscribe from synerex's node server
+func SubscribeMQTTSupply(client *sxutil.SXServiceClient, callback func(clt *sxutil.SXServiceClient, sp *api.Supply)) {
 	//Goroutine! wait message from CLI
 	ctx := context.Background()
 	for { // make it continuously working..
-		client.SubscribeSupply(ctx, supplyMQTTCallback)
-		log.Print("Error on subscribe MQTT")
-		reconnectClient(client)
+		err := client.SubscribeSupply(ctx, callback)
+		if err != nil {
+			log.Print("Error on subscribe MQTT")
+			reconnectClient(client)
+		}
 	}
+}
+
+func StatePublish(topic string, content []byte) error {
+	smo := GeneMqttSupply(topic, content)
+	_, err := Mqttclient.NotifySupply(smo)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GeneMqttSupply(topic string, content []byte) *sxutil.SupplyOpts {
+	rcd := sxmqtt.MQTTRecord{
+		Topic:  topic,
+		Record: content,
+	}
+	out, err := proto.Marshal(&rcd)
+	if err != nil {
+		log.Print(err)
+	}
+	cont := api.Content{Entity: out}
+	smo := sxutil.SupplyOpts{
+		Name:  "GridStatePublish",
+		Cdata: &cont,
+	}
+	return &smo
 }
 
 func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {

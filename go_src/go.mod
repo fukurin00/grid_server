@@ -1,4 +1,4 @@
-module example.com
+module github.com/fukurin00/grid_server
 
 go 1.16
 
@@ -9,5 +9,6 @@ require (
 	github.com/synerex/synerex_api v0.4.2 // indirect
 	github.com/synerex/synerex_proto v0.1.12 // indirect
 	github.com/synerex/synerex_sxutil v0.6.5 // indirect
+	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

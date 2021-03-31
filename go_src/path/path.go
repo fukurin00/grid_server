@@ -3,8 +3,8 @@ package path
 import (
 	"log"
 
-	robot "example.com/robot"
-	tools "example.com/tools"
+	robot "github.com/fukurin00/grid_server/robot"
+	tools "github.com/fukurin00/grid_server/tools"
 )
 
 // true: possible crush, false: no danger
