@@ -52,7 +52,7 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 				}
 
 			} else if strings.HasPrefix(rcd.Topic, "robot/pose") {
-				var pose msg.PoseStamp
+				var pose msg.ROS_Pose
 				var id int
 
 				err := json.Unmarshal(rcd.Record, &pose)

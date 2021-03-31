@@ -134,7 +134,7 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 				log.Print(id, path)
 
 			} else if strings.HasPrefix(rcd.Topic, "robot/pose") {
-				var pose msg.PoseStamp
+				var pose msg.ROS_Pose
 				var id uint32
 
 				err := json.Unmarshal(rcd.Record, &pose)

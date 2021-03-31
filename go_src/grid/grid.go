@@ -15,10 +15,10 @@ import (
 type Grid struct {
 	Reso float64
 
-	MinX int
-	MaxX int
-	MinY int
-	MaxY int
+	MinX float64
+	MaxX float64
+	MinY float64
+	MaxY float64
 
 	XWidth int
 	YWidth int
@@ -28,6 +28,8 @@ type Grid struct {
 	Oy    []float64
 
 	ObjMap [][]bool
+
+	Nodes map[int]*Node
 }
 
 type Point struct {
@@ -50,23 +52,29 @@ func NewGrid(reso float64) *Grid {
 
 // Calculating Object Map on Grid
 func (g *Grid) CalcObjMap(rr float64) {
-	g.MaxX = int(math.Round(tools.MaxFloat(g.Ox)))
-	g.MaxY = int(math.Round(tools.MaxFloat(g.Oy)))
-	g.MinX = int(math.Round(tools.MinFloat(g.Ox)))
-	g.MinY = int(math.Round(tools.MinFloat(g.Oy)))
+	g.MaxX = math.Round(tools.MaxFloat(g.Ox))
+	g.MaxY = math.Round(tools.MaxFloat(g.Oy))
+	g.MinX = math.Round(tools.MinFloat(g.Ox))
+	g.MinY = math.Round(tools.MinFloat(g.Oy))
 
 	g.XWidth = int(math.Round(float64(g.MaxX) - float64(g.MinX)))
 	g.YWidth = int(math.Round(float64(g.MaxY) - float64(g.MinY)))
 
 	g.ObjMap = make([][]bool, g.XWidth*g.YWidth)
+	g.Nodes = make(map[int]*Node)
+
 	for ix := 0; ix < g.XWidth; ix++ {
 		x := g.CalcXYPosition(ix, g.MinX)
 		for iy := 0; iy < g.YWidth; iy++ {
 			y := g.CalcXYPosition(iy, g.MinY)
+
+			ind := iy*g.XWidth + ix
+			g.Nodes[ind] = NewNode(ind, ix, iy, x, y)
 			for _, ip := range g.OList {
 				d := math.Hypot(ip.X-float64(x), ip.Y-float64(y))
 				if d < rr {
 					g.ObjMap[ix][iy] = true
+					g.Nodes[ind].Obj = true
 					break
 				}
 			}
@@ -75,14 +83,14 @@ func (g *Grid) CalcObjMap(rr float64) {
 	log.Print("complete calculate objmap")
 }
 
-func (g Grid) CalcXYPosition(index, minP int) int {
-	pos := index*int(g.Reso) + minP
+func (g Grid) CalcXYPosition(index int, minP float64) float64 {
+	pos := float64(index)*g.Reso + minP
 	return pos
 }
 
-func (g Grid) CalcPosition(index int) (int, int) {
-	px := g.MinX + int(math.Round(float64(index%g.XWidth))*g.Reso)
-	py := g.MinY + int(math.Round(float64(index/g.XWidth))*g.Reso)
+func (g Grid) CalcPosition(index int) (float64, float64) {
+	px := g.MinX + math.Round(float64(index%g.XWidth))*g.Reso
+	py := g.MinY + math.Round(float64(index/g.XWidth))*g.Reso
 	return px, py
 }
 
@@ -99,14 +107,14 @@ func (g Grid) VerifyGrid(index int) bool {
 		return false
 	}
 
-	if g.ObjMap[px][py] {
+	if g.ObjMap[int(math.Round(px))][int(math.Round(py))] {
 		return false
 	}
 	return true
 }
 
 func (g Grid) PosToGrid(x, y float64) int {
-	return (int(math.Round(y))-g.MinY)*g.XWidth + (int(math.Round(x)) - g.MinX)
+	return int(math.Round(y)-g.MinY)*g.XWidth + int(math.Round(x)-g.MinX)
 }
 
 func (g Grid) CalcRobotGrid(x, y, rr float64) []int {
@@ -147,8 +155,6 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 	if err != nil {
 		return err
 	}
-
-	//log.Print(imageData.Bounds())
 
 	g.OList = nil
 	g.Ox = nil
@@ -197,9 +203,26 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 }
 
 type Node struct {
-	Index uint32
-	X     uint32
-	Y     uint32
-	Cost  float64
-	Pind  float64
+	Index int
+	Ix    int
+	Iy    int
+
+	X    float64
+	Y    float64
+	Cost float64
+	Pind float64
+
+	Obj bool //障害物ならtrue
+}
+
+func NewNode(index, ix, iy int, x, y float64) *Node {
+	n := new(Node)
+	n.Index = index
+	n.Ix = ix
+	n.Iy = iy
+
+	n.X = x
+	n.Y = y
+
+	return n
 }

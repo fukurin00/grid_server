@@ -2,6 +2,7 @@ package msg
 
 import (
 	"math"
+	"time"
 )
 
 type ROS_header struct {
@@ -15,8 +16,36 @@ type TimeStamp struct {
 	Nsecs uint32 `json:"nsecs"`
 }
 
-func (t TimeStamp) CalcUnix() float64 {
+func (t TimeStamp) CalcTime() time.Time {
+	o := time.Unix(int64(t.Secs), int64(t.Nsecs))
+	return o
+}
+
+func (t TimeStamp) ToF() float64 {
 	return float64(t.Secs) + float64(t.Nsecs*uint32(math.Pow10(-9)))
+}
+
+func CalcTimeUnix(uni float64) time.Time {
+	sec, dec := math.Modf(uni)
+	t := time.Unix(int64(sec), int64(dec*1e9))
+	return t
+}
+
+func FtoStamp(f float64) TimeStamp {
+	sec, dec := math.Modf(f)
+	t := TimeStamp{
+		Secs:  uint32(sec),
+		Nsecs: uint32(dec * 1e9),
+	}
+	return t
+}
+
+func CalcStamp(t time.Time) TimeStamp {
+	o := TimeStamp{
+		Secs:  uint32(t.Unix()),
+		Nsecs: uint32(t.UnixNano()),
+	}
+	return o
 }
 
 type Point struct {
@@ -41,12 +70,12 @@ type Pose struct {
 	Orientation Quaternion `json:"orientation"`
 }
 
-type PoseStamp struct {
+type ROS_Pose struct {
 	Header ROS_header `json:"header"`
 	Pose   Pose       `json:"pose"`
 }
 
 type Path struct {
-	Header ROS_header  `json:"header"`
-	Poses  []PoseStamp `json:"poses"`
+	Header ROS_header `json:"header"`
+	Poses  []ROS_Pose `json:"poses"`
 }

@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	grid "github.com/fukurin00/grid_server/grid"
 	msg "github.com/fukurin00/grid_server/msg"
+	"github.com/fukurin00/grid_server/synerex"
 	sxmqtt "github.com/synerex/proto_mqtt"
 )
 
@@ -18,20 +20,26 @@ var (
 //RobotStatus robot information
 type RobotStatus struct {
 	Id   uint32
-	Pose msg.PoseStamp
+	Pose msg.ROS_Pose
 	Path msg.Path
 
 	Radius   float64
 	Velocity float64
 
-	EstPose []PoseUnix
+	EstPose []PoseStamp
 
 	RGrid *grid.Grid
 }
 
-type PoseUnix struct {
-	Pose msg.Pose `json:"pose"`
-	Unix float64  `json:"unix"`
+type PoseStamp struct {
+	Pose  msg.Pose
+	Stamp msg.TimeStamp
+}
+
+type GridPath struct {
+	Pose  msg.Pose
+	Grids []int
+	Stamp msg.TimeStamp
 }
 
 // robotstatus constructor
@@ -62,7 +70,7 @@ func (r *RobotStatus) UpdateRadius(radius float64) {
 
 //UpdatePose update robot pose
 func (r *RobotStatus) UpdatePose(rcd *sxmqtt.MQTTRecord) {
-	var pose msg.PoseStamp
+	var pose msg.ROS_Pose
 	var id uint32
 
 	err := json.Unmarshal(rcd.Record, &pose)
@@ -97,10 +105,11 @@ func (r *RobotStatus) calcPathTime() {
 		//distance from current pose
 		dis := pose.Pose.Position.Distance(currentPose.Position)
 		elap := dis / r.Velocity //est elaps time
+		uni := pose.Header.Stamp.ToF() + elap
 
-		estPose := PoseUnix{
-			Pose: pose.Pose,
-			Unix: pose.Header.Stamp.CalcUnix() + elap,
+		estPose := PoseStamp{
+			Pose:  pose.Pose,
+			Stamp: msg.FtoStamp(uni),
 		}
 
 		r.EstPose = append(r.EstPose, estPose)
@@ -108,9 +117,25 @@ func (r *RobotStatus) calcPathTime() {
 	}
 }
 
-// func (r *RobotStatus) CalcGridArea(yamlFile string) {
-// 	mapConfig := msg.ReadImageYaml(yamlFile)
-// 	reso := mapConfig.Resolution
-// 	origins := mapConfig.Origin
-
-// }
+//send stop command
+func (r RobotStatus) SendStopCmd(from, to time.Time) error {
+	m := msg.Stop{
+		Header: msg.ROS_header{
+			Stamp:    msg.CalcStamp(time.Now()),
+			Frame_id: fmt.Sprint(r.Id),
+		},
+		From: msg.CalcStamp(from),
+		To:   msg.CalcStamp(to),
+	}
+	jm, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	topic := fmt.Sprintf("/robot/stop/%d", r.Id)
+	opt := synerex.GeneMqttSupply(topic, jm)
+	_, merr := synerex.Mqttclient.NotifySupply(opt)
+	if merr != nil {
+		return merr
+	}
+	return nil
+}
