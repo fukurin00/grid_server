@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"runtime"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +22,8 @@ var (
 	robotList map[int]*robot.RobotStatus // robot list
 	yamlFile  string                     = "../map/trusco_map_edited.yaml"
 	mapFile   string                     = "../map/trusco_map_edited.pgm"
+	span      float64                    = 1.0 //crush check
+
 )
 
 func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
@@ -36,19 +38,35 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 	if err == nil {
 		if strings.HasPrefix(rcd.Topic, "robot/") {
 			if strings.HasPrefix(rcd.Topic, "robot/path") {
-				var path msg.Path
+				var p msg.Path
 				var id int
 
-				err := json.Unmarshal(rcd.Record, &path)
+				err := json.Unmarshal(rcd.Record, &p)
 				if err != nil {
 					log.Print(err)
 				}
 				fmt.Sscanf(rcd.Topic, "robot/path/%d", &id)
 
-				log.Print(id, path)
+				log.Print(id, p)
 
 				if rob, ok := robotList[id]; ok {
 					rob.UpdatePath(rcd)
+					for key, val := range robotList {
+						if key != id && len(val.EstPose) > 0 { //2 or more robot have path
+							out := robot.CheckRobotPath(*rob, *val, span)
+							if out.Check {
+								m, err := val.MakeStopCmd(out.From, out.To)
+								if err != nil {
+									log.Print(err)
+								}
+								err2 := robot.SendCmdRobot(m)
+								if err2 != nil {
+									log.Print(err)
+								}
+							}
+						}
+					}
+
 				}
 
 			} else if strings.HasPrefix(rcd.Topic, "robot/pose") {
@@ -66,7 +84,6 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 					rob.UpdatePose(rcd)
 				}
 			}
-
 		}
 	}
 }
@@ -91,7 +108,7 @@ func publishState() {
 }
 
 func main() {
-	_, fn, _, _ := runtime.Caller(1)
+	fn, _ := os.Executable()
 	log.Print("starting", fn)
 
 	wg := sync.WaitGroup{} //wait exit for gorouting

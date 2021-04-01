@@ -10,6 +10,7 @@ import (
 	grid "github.com/fukurin00/grid_server/grid"
 	msg "github.com/fukurin00/grid_server/msg"
 	"github.com/fukurin00/grid_server/synerex"
+	tools "github.com/fukurin00/grid_server/tools"
 	sxmqtt "github.com/synerex/proto_mqtt"
 )
 
@@ -26,14 +27,9 @@ type RobotStatus struct {
 	Radius   float64
 	Velocity float64
 
-	EstPose []PoseStamp
+	EstPose []GridPath
 
 	RGrid *grid.Grid
-}
-
-type PoseStamp struct {
-	Pose  msg.Pose
-	Stamp msg.TimeStamp
 }
 
 type GridPath struct {
@@ -107,9 +103,10 @@ func (r *RobotStatus) calcPathTime() {
 		elap := dis / r.Velocity //est elaps time
 		uni := pose.Header.Stamp.ToF() + elap
 
-		estPose := PoseStamp{
+		estPose := GridPath{
 			Pose:  pose.Pose,
 			Stamp: msg.FtoStamp(uni),
+			Grids: r.RGrid.CalcRobotGrid(r.Pose.Pose.Position.X, r.Pose.Pose.Position.Y, r.Radius),
 		}
 
 		r.EstPose = append(r.EstPose, estPose)
@@ -118,24 +115,79 @@ func (r *RobotStatus) calcPathTime() {
 }
 
 //send stop command
-func (r RobotStatus) SendStopCmd(from, to time.Time) error {
+func (r RobotStatus) MakeStopCmd(from, to msg.TimeStamp) (RobotMsg, error) {
 	m := msg.Stop{
 		Header: msg.ROS_header{
 			Stamp:    msg.CalcStamp(time.Now()),
 			Frame_id: fmt.Sprint(r.Id),
 		},
-		From: msg.CalcStamp(from),
-		To:   msg.CalcStamp(to),
+		From: from,
+		To:   to,
 	}
 	jm, err := json.Marshal(m)
 	if err != nil {
-		return err
+		return RobotMsg{}, err
 	}
 	topic := fmt.Sprintf("/robot/stop/%d", r.Id)
-	opt := synerex.GeneMqttSupply(topic, jm)
+	out := RobotMsg{
+		Topic:   topic,
+		Content: jm,
+		Stamp:   from,
+	}
+	return out, nil
+}
+
+type RobotMsg struct {
+	Stamp   msg.TimeStamp //time to sending
+	Topic   string        //topic
+	Content []byte        //json content
+}
+
+func SendCmdRobot(m RobotMsg) error {
+	opt := synerex.GeneMqttSupply(m.Topic, m.Content)
 	_, merr := synerex.Mqttclient.NotifySupply(opt)
 	if merr != nil {
 		return merr
 	}
 	return nil
+}
+
+type PathInfo struct {
+	Check bool //可能性あるか
+	From  msg.TimeStamp
+	To    msg.TimeStamp
+	Grids []int //index list
+}
+
+// true: possible crush, false: no danger
+func CheckRobotPath(a, b RobotStatus, span float64) PathInfo {
+	for _, pa := range a.EstPose {
+		for _, pb := range b.EstPose {
+			from := pa.Stamp.ToF() - span/2
+			to := pa.Stamp.ToF() + span/2
+			//time check
+			if tools.CheckSpan(from, to, pb.Stamp.ToF()) {
+				aOvers := pa.Grids
+				bOvers := pb.Grids
+				log.Print(aOvers, bOvers)
+				overs := tools.CheckDuplicate(aOvers, bOvers)
+
+				pinfo := PathInfo{}
+				if overs == nil {
+					pinfo.Check = false
+					return pinfo
+				}
+				if len(overs) > 0 {
+
+					pinfo.Grids = overs
+					pinfo.From = msg.FtoStamp(from)
+					pinfo.To = msg.FtoStamp(to)
+					return pinfo
+				}
+			}
+		}
+	}
+	pinfo := PathInfo{}
+	pinfo.Check = false
+	return pinfo
 }

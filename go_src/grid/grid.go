@@ -60,7 +60,10 @@ func (g *Grid) CalcObjMap(rr float64) {
 	g.XWidth = int(math.Round(float64(g.MaxX) - float64(g.MinX)))
 	g.YWidth = int(math.Round(float64(g.MaxY) - float64(g.MinY)))
 
-	g.ObjMap = make([][]bool, g.XWidth*g.YWidth)
+	g.ObjMap = make([][]bool, g.XWidth)
+	for i := 0; i < g.XWidth; i++ {
+		g.ObjMap[i] = make([]bool, g.YWidth)
+	}
 	g.Nodes = make(map[int]*Node)
 
 	for ix := 0; ix < g.XWidth; ix++ {
