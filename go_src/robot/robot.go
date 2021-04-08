@@ -20,22 +20,22 @@ var (
 
 //RobotStatus robot information
 type RobotStatus struct {
-	Id   uint32
-	Pose msg.ROS_Pose
+	Id   uint32       `json:"id"`
+	Pose msg.ROS_Pose `json:"pose"`
 	Path msg.Path
 
-	Radius   float64
-	Velocity float64
+	Radius   float64 `json:"radius"`
+	Velocity float64 `json:"velocity"`
 
-	EstPose []GridPath
+	EstPose []GridPath `json:"estPose"`
 
 	RGrid *grid.Grid
 }
 
 type GridPath struct {
-	Pose  msg.Pose
-	Grids []int
-	Stamp msg.TimeStamp
+	Pose  msg.Pose      `json:"pose"`
+	Grids []int         `json:"grids"`
+	Stamp msg.TimeStamp `json:"stamp"`
 }
 
 // robotstatus constructor

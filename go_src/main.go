@@ -47,7 +47,7 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 				}
 				fmt.Sscanf(rcd.Topic, "robot/path/%d", &id)
 
-				log.Print(id, p)
+				log.Printf("%v+", p)
 
 				if rob, ok := robotList[id]; ok {
 					rob.UpdatePath(rcd)
@@ -79,7 +79,7 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 				}
 				fmt.Sscanf(rcd.Topic, "robot/pose/%d", &id)
 
-				log.Print(id, pose)
+				// log.Print(id, pose)
 				if rob, ok := robotList[id]; ok {
 					rob.UpdatePose(rcd)
 				}
@@ -94,7 +94,8 @@ func publishState() {
 
 	for _ = range timer.C {
 		for key, val := range robotList {
-			message, err := json.Marshal(val.EstPose)
+			message, err := json.Marshal(&val.Pose)
+			// log.Print(string(message))
 			if err != nil {
 				log.Print("json marshal error", err)
 			}
