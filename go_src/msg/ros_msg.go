@@ -70,12 +70,12 @@ type Pose struct {
 	Orientation Quaternion `json:"orientation"`
 }
 
-type ROS_Pose struct {
+type ROS_PoseStamped struct {
 	Header ROS_header `json:"header"`
 	Pose   Pose       `json:"pose"`
 }
 
 type Path struct {
-	Header ROS_header `json:"header"`
-	Poses  []ROS_Pose `json:"poses"`
+	Header ROS_header        `json:"header"`
+	Poses  []ROS_PoseStamped `json:"poses"`
 }

@@ -20,8 +20,8 @@ import (
 
 var (
 	robotList map[int]*robot.RobotStatus // robot list
-	yamlFile  string                     = "../map/trusco_map_edited.yaml"
-	mapFile   string                     = "../map/trusco_map_edited.pgm"
+	yamlFile  string                     = "../map/willow_garage.yaml"
+	mapFile   string                     = "../map/willow_garage.pgm"
 	span      float64                    = 1.0 //crush check
 
 )
@@ -46,31 +46,36 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 					log.Print(err)
 				}
 				fmt.Sscanf(rcd.Topic, "robot/path/%d", &id)
-
-				log.Printf("%v+", p)
+				log.Print("get ", rcd.Topic)
+				// log.Print(p)
 
 				if rob, ok := robotList[id]; ok {
 					rob.UpdatePath(rcd)
 					for key, val := range robotList {
-						if key != id && len(val.EstPose) > 0 { //2 or more robot have path
+						if key != id && len(val.EstPose) > 0 { //multi robot already had path
+							log.Print("check path", id, " and ", key)
 							out := robot.CheckRobotPath(*rob, *val, span)
 							if out.Check {
 								m, err := val.MakeStopCmd(out.From, out.To)
 								if err != nil {
 									log.Print(err)
 								}
+								log.Print("send stop command")
 								err2 := robot.SendCmdRobot(m)
 								if err2 != nil {
 									log.Print(err)
 								}
+							} else {
+								log.Print("no need to stop")
 							}
+
 						}
 					}
 
 				}
 
 			} else if strings.HasPrefix(rcd.Topic, "robot/pose") {
-				var pose msg.ROS_Pose
+				var pose msg.ROS_PoseStamped
 				var id int
 
 				err := json.Unmarshal(rcd.Record, &pose)

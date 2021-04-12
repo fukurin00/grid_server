@@ -84,6 +84,10 @@ func (g *Grid) CalcObjMap(rr float64) {
 		}
 	}
 	log.Print("complete calculate objmap")
+	log.Print(`minX, maxX, minY, maxY
+		xwidth, ywidth`)
+	log.Print(g.MinX, g.MaxX, g.MinY, g.MaxY)
+	log.Print(g.XWidth, g.YWidth)
 }
 
 func (g Grid) CalcXYPosition(index int, minP float64) float64 {

@@ -3,11 +3,9 @@ package synerex
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,8 +14,6 @@ import (
 	pbase "github.com/synerex/synerex_proto"
 	sxutil "github.com/synerex/synerex_sxutil"
 	"google.golang.org/protobuf/proto"
-
-	msg "github.com/fukurin00/grid_server/msg"
 )
 
 var (
@@ -108,44 +104,4 @@ func GeneMqttSupply(topic string, content []byte) *sxutil.SupplyOpts {
 		Cdata: &cont,
 	}
 	return &smo
-}
-
-func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
-	//from MQTT broker
-	if sp.SenderId == uint64(clt.ClientID) {
-		// ignore my message.
-		return
-	}
-
-	rcd := &sxmqtt.MQTTRecord{}
-	err := proto.Unmarshal(sp.Cdata.Entity, rcd)
-	if err == nil {
-		if strings.HasPrefix(rcd.Topic, "robot/") {
-			if strings.HasPrefix(rcd.Topic, "robot/path") {
-				var path msg.Path
-				var id uint32
-
-				err := json.Unmarshal(rcd.Record, &path)
-				if err != nil {
-					log.Print(err)
-				}
-				fmt.Sscanf(rcd.Topic, "robot/path/%d", &id)
-
-				log.Print(id, path)
-
-			} else if strings.HasPrefix(rcd.Topic, "robot/pose") {
-				var pose msg.ROS_Pose
-				var id uint32
-
-				err := json.Unmarshal(rcd.Record, &pose)
-				if err != nil {
-					log.Print(err)
-				}
-				fmt.Sscanf(rcd.Topic, "robot/pose/%d", &id)
-
-				log.Print(id, pose)
-			}
-
-		}
-	}
 }
