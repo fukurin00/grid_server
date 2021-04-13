@@ -27,7 +27,8 @@ type RobotStatus struct {
 	Radius   float64 `json:"radius"`
 	Velocity float64 `json:"velocity"`
 
-	EstPose []GridPath `json:"estPose"`
+	EstPose   []GridPath `json:"estPose"`
+	PathGrids []int      `json: "pathGrids"`
 
 	RGrid *grid.Grid
 }
@@ -99,22 +100,29 @@ func (r *RobotStatus) calcPathTime() {
 	// currentPose := r.Pose
 	prevPose := r.PoseStamp.Pose
 	prevUnix := r.PoseStamp.Header.Stamp.ToF()
+	var allGrids []int
+
 	for _, pose := range r.Path {
 		//distance from current pose
 		dis := pose.Pose.Position.Distance(prevPose.Position)
 		elap := dis / r.Velocity //est elaps time
 		uni := prevUnix + elap
 
+		grids := r.RGrid.CalcRobotGrid(pose.Pose.Position.X, pose.Pose.Position.Y, r.Radius)
+		allGrids = append(allGrids, grids...)
+
 		estPose := GridPath{
 			Pose:  pose.Pose,
 			Stamp: msg.FtoStamp(uni),
-			Grids: r.RGrid.CalcRobotGrid(pose.Pose.Position.X, pose.Pose.Position.Y, r.Radius),
+			Grids: grids,
 		}
 
 		r.EstPose = append(r.EstPose, estPose)
 		prevPose = pose.Pose
 		prevUnix = uni
 	}
+	pathGrid := tools.RemoveDuplicate(allGrids)
+	r.PathGrids = pathGrid
 }
 
 //send stop command
