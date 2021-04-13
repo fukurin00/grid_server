@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"os"
 	"sort"
 )
 
@@ -36,7 +37,7 @@ func CheckDuplicate(a, b []int) []int {
 	for _, aa := range a {
 		for _, bb := range b {
 			if aa == bb {
-				if !CheckSameCom(aa, dup) {
+				if !checkSameCom(aa, dup) {
 					dup = append(dup, aa)
 				}
 			}
@@ -60,11 +61,26 @@ func RemoveDuplicate(l []int) []int {
 }
 
 // check an component:t is in list:l
-func CheckSameCom(t int, l []int) bool {
+func checkSameCom(t int, l []int) bool {
 	for _, a := range l {
 		if t == a {
 			return true
 		}
 	}
 	return false
+}
+
+// Write bytes in file
+func WriteFile(fname string, b []byte) error {
+	file, err := os.Create(fname)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.Write(b)
+	if err != nil {
+		return err
+	}
+	return nil
 }

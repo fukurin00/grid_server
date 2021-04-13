@@ -53,7 +53,7 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 					rob.UpdatePath(rcd)
 					for key, val := range robotList {
 						if key != id && len(val.EstPose) > 0 { //multi robot already had path
-							log.Print("check path", id, " and ", key)
+							// log.Print("check path ", id, " and ", key)
 							out := robot.CheckRobotPath(*rob, *val, span)
 							if out.Check {
 								m, err := val.MakeStopCmd(out.From, out.To)
@@ -66,7 +66,7 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 									log.Print(err)
 								}
 							} else {
-								log.Print("no need to stop")
+								// log.Print("no need to stop")
 							}
 
 						}

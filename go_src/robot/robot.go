@@ -123,6 +123,12 @@ func (r *RobotStatus) calcPathTime() {
 	}
 	pathGrid := tools.RemoveDuplicate(allGrids)
 	r.PathGrids = pathGrid
+	f := fmt.Sprintf("test/robot%dtest.json", r.Id)
+	m, err := json.MarshalIndent(r.EstPose, "", " ")
+	if err != nil {
+		log.Print(err)
+	}
+	tools.WriteFile(f, m)
 }
 
 //send stop command
@@ -172,28 +178,31 @@ type PathInfo struct {
 
 // true: possible crush, false: no danger
 func CheckRobotPath(a, b RobotStatus, span float64) PathInfo {
-	for _, pa := range a.EstPose {
-		for _, pb := range b.EstPose {
-			from := pa.Stamp.ToF() - span/2
-			to := pa.Stamp.ToF() + span/2
-			//time check
-			if tools.CheckSpan(from, to, pb.Stamp.ToF()) {
-				aOvers := pa.Grids
-				bOvers := pb.Grids
-				log.Print(aOvers, bOvers)
-				overs := tools.CheckDuplicate(aOvers, bOvers)
+	dups := tools.CheckDuplicate(a.PathGrids, b.PathGrids)
+	if len(dups) > 0 {
+		for _, pa := range a.EstPose {
+			for _, pb := range b.EstPose {
+				from := pa.Stamp.ToF() - span/2
+				to := pa.Stamp.ToF() + span/2
+				//time check
+				if tools.CheckSpan(from, to, pb.Stamp.ToF()) {
+					aOvers := pa.Grids
+					bOvers := pb.Grids
+					// log.Print(aOvers, bOvers)
+					overs := tools.CheckDuplicate(aOvers, bOvers)
 
-				pinfo := PathInfo{}
-				if overs == nil {
-					pinfo.Check = false
-					return pinfo
-				}
-				if len(overs) > 0 {
-
-					pinfo.Grids = overs
-					pinfo.From = msg.FtoStamp(from)
-					pinfo.To = msg.FtoStamp(to)
-					return pinfo
+					pinfo := PathInfo{}
+					if overs == nil {
+						pinfo.Check = false
+						return pinfo
+					}
+					if len(overs) > 0 {
+						pinfo.Check = true
+						pinfo.Grids = overs
+						pinfo.From = msg.FtoStamp(from)
+						pinfo.To = msg.FtoStamp(to)
+						return pinfo
+					}
 				}
 			}
 		}
