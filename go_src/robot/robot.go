@@ -20,9 +20,9 @@ var (
 
 //RobotStatus robot information
 type RobotStatus struct {
-	Id   uint32                `json:"id"`
-	Pose msg.Pose              `json:"pose"`
-	Path []msg.ROS_PoseStamped `json:"path"`
+	Id        uint32                `json:"id"`
+	PoseStamp msg.ROS_PoseStamped   `json:"pose"`
+	Path      []msg.ROS_PoseStamped `json:"path"`
 
 	Radius   float64 `json:"radius"`
 	Velocity float64 `json:"velocity"`
@@ -75,7 +75,7 @@ func (r *RobotStatus) UpdatePose(rcd *sxmqtt.MQTTRecord) {
 	}
 	fmt.Sscanf(rcd.Topic, "robot/pose/%d", &id)
 
-	r.Pose = pose.Pose
+	r.PoseStamp = pose
 
 }
 
@@ -96,21 +96,24 @@ func (r *RobotStatus) UpdatePath(rcd *sxmqtt.MQTTRecord) {
 
 func (r *RobotStatus) calcPathTime() {
 	r.EstPose = nil
-	currentPose := r.Pose
+	// currentPose := r.Pose
+	prevPose := r.PoseStamp.Pose
+	prevUnix := r.PoseStamp.Header.Stamp.ToF()
 	for _, pose := range r.Path {
 		//distance from current pose
-		dis := pose.Pose.Position.Distance(currentPose.Position)
+		dis := pose.Pose.Position.Distance(prevPose.Position)
 		elap := dis / r.Velocity //est elaps time
-		uni := pose.Header.Stamp.ToF() + elap
+		uni := prevUnix + elap
 
 		estPose := GridPath{
 			Pose:  pose.Pose,
 			Stamp: msg.FtoStamp(uni),
-			Grids: r.RGrid.CalcRobotGrid(r.Pose.Position.X, r.Pose.Position.Y, r.Radius),
+			Grids: r.RGrid.CalcRobotGrid(pose.Pose.Position.X, pose.Pose.Position.Y, r.Radius),
 		}
 
 		r.EstPose = append(r.EstPose, estPose)
-		currentPose = pose.Pose
+		prevPose = pose.Pose
+		prevUnix = uni
 	}
 }
 

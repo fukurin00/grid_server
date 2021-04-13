@@ -96,8 +96,10 @@ func (g Grid) CalcXYPosition(index int, minP float64) float64 {
 }
 
 func (g Grid) CalcPosition(index int) (float64, float64) {
-	px := g.MinX + math.Round(float64(index%g.XWidth))*g.Reso
-	py := g.MinY + math.Round(float64(index/g.XWidth))*g.Reso
+	// px := g.MinX + math.Round(float64(index%g.XWidth))*g.Reso
+	// py := g.MinY + math.Round(float64(index/g.XWidth))*g.Reso
+	px := g.Nodes[index].X
+	py := g.Nodes[index].Y
 	return px, py
 }
 
@@ -114,7 +116,7 @@ func (g Grid) VerifyGrid(index int) bool {
 		return false
 	}
 
-	if g.ObjMap[int(math.Round(px))][int(math.Round(py))] {
+	if g.ObjMap[g.Nodes[index].Ix][g.Nodes[index].Iy] {
 		return false
 	}
 	return true

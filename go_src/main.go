@@ -22,7 +22,7 @@ var (
 	robotList map[int]*robot.RobotStatus // robot list
 	yamlFile  string                     = "../map/willow_garage.yaml"
 	mapFile   string                     = "../map/willow_garage.pgm"
-	span      float64                    = 1.0 //crush check
+	span      float64                    = 10 //crush check
 
 )
 
@@ -99,7 +99,7 @@ func publishState() {
 
 	for _ = range timer.C {
 		for key, val := range robotList {
-			message, err := json.Marshal(&val.Pose)
+			message, err := json.Marshal(&val.PoseStamp.Pose)
 			// log.Print(string(message))
 			if err != nil {
 				log.Print("json marshal error", err)
