@@ -217,7 +217,7 @@ func (r RobotStatus) MakeStopCmd(from, to msg.TimeStamp) (RobotMsg, error) {
 	if err != nil {
 		return RobotMsg{}, err
 	}
-	topic := fmt.Sprintf("/robot/stop/%d", r.Id)
+	topic := fmt.Sprintf("/robot/cmd/stop/%d", r.Id)
 	out := RobotMsg{
 		Topic:   topic,
 		Content: jm,
