@@ -129,8 +129,8 @@ func main() {
 	wg := sync.WaitGroup{} //wait exit for gorouting
 
 	robotList = make(map[int]*robot.RobotStatus)
-	robotList[1] = robot.NewRobot(1, 0.5, 3.0, mapFile, yamlFile)
-	robotList[2] = robot.NewRobot(2, 1, 2.0, mapFile, yamlFile)
+	robotList[1] = robot.NewRobot(1, 0.5, 1.5, 1.5, 0.5, mapFile, yamlFile)
+	robotList[2] = robot.NewRobot(2, 1, 1.5, 1.5, 0.5, mapFile, yamlFile)
 
 	wg.Add(1)
 	synerex.RunSynerex()

@@ -104,6 +104,9 @@ func (g Grid) CalcPosition(index int) (float64, float64) {
 }
 
 func (g Grid) VerifyGrid(index int) bool {
+	if index > g.XWidth*g.YWidth-1 {
+		return false
+	}
 	px, py := g.CalcPosition(index)
 
 	if px < g.MinX {
