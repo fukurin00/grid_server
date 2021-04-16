@@ -23,7 +23,7 @@ var (
 	yamlFile  string                     = "../map/willow_garage.yaml"
 	mapFile   string                     = "../map/willow_garage.pgm"
 	span      float64                    = 10 //crush check
-
+	mode      string                     = "reroute"
 )
 
 func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
@@ -55,20 +55,37 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 						if key != id && len(val.EstPose) > 0 { //multi robot already had path
 							// log.Print("check path ", id, " and ", key)
 							out := robot.CheckRobotPath(*rob, *val, span)
-							if out.Check {
-								m, err := val.MakeStopCmd(out.From, out.To)
-								if err != nil {
-									log.Print(err)
-								}
-								log.Print("send stop command")
-								err2 := robot.SendCmdRobot(m)
-								if err2 != nil {
-									log.Print(err)
-								}
-							} else {
-								// log.Print("no need to stop")
-							}
 
+							//衝突の可能性がある場合は再計算
+							if out.Check {
+								// かぶる場所をふさいで再計算
+								log.Print("start new path planning", key, " and ", id)
+								rx, ry, ok := rob.RGrid.AstarPlan(rob.PoseStamp.Pose.Position.X, rob.PoseStamp.Pose.Position.Y, rob.Path[len(rob.Path)-1].Pose.Position.X, rob.Path[len(rob.Path)-1].Pose.Position.Y, out.Grids)
+
+								if ok {
+									// 経路が成功すれば新しいpathを送る
+									m, err := rob.MakePathCmd(rx, ry)
+									if err != nil {
+										log.Print(err)
+									}
+									log.Print("send new path command")
+									err2 := robot.SendCmdRobot(m)
+									if err2 != nil {
+										log.Print(err2)
+									}
+								} else {
+									//失敗すれば停止司令を送る
+									m, err := rob.MakeStopCmd(out.From, out.To)
+									if err != nil {
+										log.Print(err)
+									}
+									log.Print("send stop command")
+									err2 := robot.SendCmdRobot(m)
+									if err2 != nil {
+										log.Print(err2)
+									}
+								}
+							}
 						}
 					}
 

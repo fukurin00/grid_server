@@ -105,6 +105,14 @@ func (g Grid) CalcPosition(index int) (float64, float64) {
 	return px, py
 }
 
+// だめなグリッドを任意で追加する
+func (g Grid) VerifyGridP(index int, hidden []int) bool {
+	if tools.CheckSameCom(index, hidden) {
+		return false
+	}
+	return g.VerifyGrid(index)
+}
+
 func (g Grid) VerifyGrid(index int) bool {
 	if index > g.XWidth*g.YWidth-1 {
 		return false
@@ -216,6 +224,7 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 	return nil
 }
 
+// xyどちらかの座標を受取、idを返す
 func (g Grid) xyIndex(p float64, minp int) int {
 	return int(math.Round((p - float64(minp)) / g.Reso))
 }
@@ -226,16 +235,18 @@ func heuristic(n1, n2 *Node) float64 {
 	return d
 }
 
+// nodeを受取idを返す
 func (g Grid) gridIndex(n *Node) int {
 	return (n.Iy-g.MinY)*g.XWidth + (n.Ix - g.MinX)
 }
 
+// x,yどちらかのindexを受取座標を返す
 func (g Grid) gridPos(index, minP int) float64 {
 	pos := float64(index)*g.Reso + float64(minP)
 	return pos
 }
 
-func (g Grid) AstarPlan(sx, sy, gx, gy float64) (rx, ry []float64) {
+func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64, Notfail bool) {
 	nstart := NewNodeG(g.xyIndex(sx, g.MinX), g.xyIndex(sy, g.MinY), 0.0, -1)
 	ngoal := NewNodeG(g.xyIndex(gx, g.MinX), g.xyIndex(gy, g.MinY), 0.0, -1)
 
@@ -246,7 +257,9 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64) (rx, ry []float64) {
 	for {
 		if len(open_set) == 0 {
 			log.Print("open set is empty..")
-			break
+			var failX []float64
+			var failY []float64
+			return failX, failY, false
 		}
 
 		minCost := 9999999.9
@@ -280,7 +293,7 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64) (rx, ry []float64) {
 			nId = g.gridIndex(node)
 		}
 
-		if !g.VerifyGrid(g.gridIndex(node)) {
+		if !g.VerifyGridP(g.gridIndex(node), hidden) {
 			continue
 		}
 
@@ -293,9 +306,10 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64) (rx, ry []float64) {
 		}
 	}
 	rx, ry = g.finalPath(ngoal, close_set)
-	return rx, ry
+	return rx, ry, true
 }
 
+// 最後に経路の順番にする
 func (g Grid) finalPath(ngoal *Node, closeSet map[int]*Node) (rx, ry []float64) {
 	rx = append(rx, g.gridPos(ngoal.Ix, g.MinX))
 	ry = append(ry, g.gridPos(ngoal.Iy, g.MinY))

@@ -37,7 +37,7 @@ func CheckDuplicate(a, b []int) []int {
 	for _, aa := range a {
 		for _, bb := range b {
 			if aa == bb {
-				if !checkSameCom(aa, dup) {
+				if !CheckSameCom(aa, dup) {
 					dup = append(dup, aa)
 				}
 			}
@@ -61,7 +61,7 @@ func RemoveDuplicate(l []int) []int {
 }
 
 // check an component:t is in list:l
-func checkSameCom(t int, l []int) bool {
+func CheckSameCom(t int, l []int) bool {
 	for _, a := range l {
 		if t == a {
 			return true

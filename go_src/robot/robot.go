@@ -226,6 +226,38 @@ func (r RobotStatus) MakeStopCmd(from, to msg.TimeStamp) (RobotMsg, error) {
 	return out, nil
 }
 
+func (r RobotStatus) MakePathCmd(rx, ry []float64) (RobotMsg, error) {
+	topic := fmt.Sprintf("robot/cmd/path/%d", r.Id)
+	var poses []msg.ROS_PoseStamped
+
+	for i, x := range rx {
+		for _, y := range ry {
+			pos := msg.ROS_PoseStamped{
+				Header: msg.ROS_header{Seq: uint32(i)},
+				Pose: msg.Pose{
+					Position: msg.Point{X: x, Y: y, Z: 0.0},
+				},
+			}
+			poses = append(poses, pos)
+		}
+	}
+
+	plan := msg.Path{
+		Header: msg.ROS_header{},
+		Poses:  poses,
+	}
+
+	jm, err := json.Marshal(plan)
+	if err != nil {
+		return RobotMsg{}, err
+	}
+	out := RobotMsg{
+		Topic:   topic,
+		Content: jm,
+	}
+	return out, nil
+}
+
 type RobotMsg struct {
 	Stamp   msg.TimeStamp //time to sending
 	Topic   string        //topic
