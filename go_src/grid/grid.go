@@ -29,7 +29,7 @@ type Grid struct {
 	Ox    []float64
 	Oy    []float64
 
-	ObjMap [][]bool
+	ObjMap [][]bool //if object, it is true
 
 	Nodes map[int]*Node
 }
@@ -59,8 +59,8 @@ func (g *Grid) CalcObjMap(rr float64) {
 	g.MinX = int(math.Round(tools.MinFloat(g.Ox)))
 	g.MinY = int(math.Round(tools.MinFloat(g.Oy)))
 
-	g.XWidth = int(math.Round(float64(g.MaxX) - float64(g.MinX)))
-	g.YWidth = int(math.Round(float64(g.MaxY) - float64(g.MinY)))
+	g.XWidth = int(math.Round(float64(g.MaxX) - float64(g.MinX)/g.Reso))
+	g.YWidth = int(math.Round(float64(g.MaxY) - float64(g.MinY)/g.Reso))
 
 	g.ObjMap = make([][]bool, g.XWidth)
 	for i := 0; i < g.XWidth; i++ {
@@ -68,12 +68,13 @@ func (g *Grid) CalcObjMap(rr float64) {
 	}
 	g.Nodes = make(map[int]*Node)
 
+	var ind int
 	for ix := 0; ix < g.XWidth; ix++ {
 		x := g.CalcXYPosition(ix, g.MinX)
 		for iy := 0; iy < g.YWidth; iy++ {
 			y := g.CalcXYPosition(iy, g.MinY)
 
-			ind := iy*g.XWidth + ix
+			ind = iy*g.XWidth + ix
 			g.Nodes[ind] = NewNode(ind, ix, iy, x, y)
 			for _, ip := range g.OList {
 				d := math.Hypot(ip.X-float64(x), ip.Y-float64(y))
@@ -90,13 +91,16 @@ func (g *Grid) CalcObjMap(rr float64) {
 		xwidth, ywidth`)
 	log.Print(g.MinX, g.MaxX, g.MinY, g.MaxY)
 	log.Print(g.XWidth, g.YWidth)
+	log.Print("max index is", ind)
 }
 
+// get x or y position from thats index
 func (g Grid) CalcXYPosition(index, minP int) float64 {
 	pos := float64(index)*g.Reso + float64(minP)
 	return pos
 }
 
+//get positoin from node index
 func (g Grid) CalcPosition(index int) (float64, float64) {
 	// px := g.MinX + math.Round(float64(index%g.XWidth))*g.Reso
 	// py := g.MinY + math.Round(float64(index/g.XWidth))*g.Reso
@@ -105,7 +109,7 @@ func (g Grid) CalcPosition(index int) (float64, float64) {
 	return px, py
 }
 
-// だめなグリッドを任意で追加する
+// だめなグリッドを任意で追加site verify grid
 func (g Grid) VerifyGridP(index int, hidden []int) bool {
 	if tools.CheckSameCom(index, hidden) {
 		return false
@@ -115,6 +119,7 @@ func (g Grid) VerifyGridP(index int, hidden []int) bool {
 
 func (g Grid) VerifyGrid(index int) bool {
 	if index > g.XWidth*g.YWidth-1 {
+		log.Print("index ", index, " is overflow")
 		return false
 	}
 	px, py := g.CalcPosition(index)
@@ -129,14 +134,18 @@ func (g Grid) VerifyGrid(index int) bool {
 		return false
 	}
 
-	if g.ObjMap[g.Nodes[index].Ix][g.Nodes[index].Iy] {
+	if g.Nodes[index].Obj {
+		log.Print(px, py, index, " is not verified")
 		return false
 	}
 	return true
 }
 
+//from position to return node index
 func (g Grid) PosToGrid(x, y float64) int {
-	return int(math.Round(y)) - g.MinY*g.XWidth + int(math.Round(x)) - g.MinX
+	ix := g.xyIndex(x, g.MinX)
+	iy := g.xyIndex(y, g.MinY)
+	return iy*g.XWidth + ix
 }
 
 func (g Grid) CalcRobotGrid(x, y, rr float64) []int {
@@ -231,13 +240,13 @@ func (g Grid) xyIndex(p float64, minp int) int {
 
 func heuristic(n1, n2 *Node) float64 {
 	w := 1.0
-	d := w * math.Hypot(float64(n1.Ix)-float64(n2.Ix), float64(n1.Iy)-float64(n2.Iy))
+	d := w * math.Hypot(float64(n1.X)-float64(n2.X), float64(n1.Y)-float64(n2.Y))
 	return d
 }
 
 // nodeを受取idを返す
 func (g Grid) gridIndex(n *Node) int {
-	return (n.Iy-g.MinY)*g.XWidth + (n.Ix - g.MinX)
+	return n.Iy*g.XWidth + n.Ix
 }
 
 // x,yどちらかのindexを受取座標を返す
@@ -250,6 +259,11 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 	nstart := NewNodeG(g.xyIndex(sx, g.MinX), g.xyIndex(sy, g.MinY), 0.0, -1)
 	ngoal := NewNodeG(g.xyIndex(gx, g.MinX), g.xyIndex(gy, g.MinY), 0.0, -1)
 
+	if !g.VerifyGridP(g.gridIndex(nstart), hidden) {
+		log.Print("start point is not verified")
+		return rx, ry, false
+	}
+
 	open_set := make(map[int]*Node)
 	close_set := make(map[int]*Node)
 	open_set[g.gridIndex(nstart)] = nstart
@@ -257,9 +271,7 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 	for {
 		if len(open_set) == 0 {
 			log.Print("open set is empty..")
-			var failX []float64
-			var failY []float64
-			return failX, failY, false
+			return rx, ry, false
 		}
 
 		minCost := 9999999.9
@@ -279,6 +291,8 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 			log.Print("find goal")
 			ngoal.Pind = current.Pind
 			ngoal.Cost = current.Cost
+			rx, ry = g.finalPath(ngoal, close_set)
+			return rx, ry, true
 		}
 
 		delete(open_set, cId)
@@ -287,7 +301,7 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 
 		var nId int
 		var node *Node
-		motion := [8][3]float64{{1.0, 0, 1.0}, {0, 1.0, 1.0}, {-1.0, 0, 1.0}, {0, -1.0, 1.0}, {-1.0, -1.0, math.Sqrt(3)}, {-1.0, 1.0, math.Sqrt(3)}, {1.0, -1.0, math.Sqrt(3)}, {1.0, 1.0, math.Sqrt(3)}}
+		motion := [8][3]float64{{1.0, 0, 1.0}, {0, 1.0, 1.0}, {-1.0, 0, 1.0}, {0, -1.0, 1.0}, {-1.0, -1.0, math.Sqrt(2)}, {-1.0, 1.0, math.Sqrt(2)}, {1.0, -1.0, math.Sqrt(2)}, {1.0, 1.0, math.Sqrt(2)}}
 		for _, v := range motion {
 			node = NewNodeG(current.Ix+int(v[0]), current.Iy+int(v[1]), current.Cost+v[2], cId)
 			nId = g.gridIndex(node)
@@ -305,8 +319,6 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 			open_set[nId] = node
 		}
 	}
-	rx, ry = g.finalPath(ngoal, close_set)
-	return rx, ry, true
 }
 
 // 最後に経路の順番にする
@@ -348,10 +360,10 @@ func NewNode(index, ix, iy int, x, y float64) *Node {
 	return n
 }
 
-func NewNodeG(x, y int, cost float64, pind int) *Node {
+func NewNodeG(ix, iy int, cost float64, pind int) *Node {
 	n := new(Node)
-	n.Ix = x
-	n.Iy = y
+	n.Ix = ix
+	n.Iy = iy
 	n.Cost = cost
 	n.Pind = pind
 	return n
