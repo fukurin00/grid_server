@@ -128,7 +128,7 @@ func (g Grid) VerifyGridP(index int, hidden []int) bool {
 
 func (g Grid) VerifyGrid(index int) bool {
 	if index > g.XWidth*g.YWidth-1 {
-		log.Print("index ", index, " is overflow")
+		// log.Print("index ", index, " is overflow")
 		return false
 	}
 	px, py := g.CalcPosition(index)
@@ -332,6 +332,7 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 
 // 最後に経路の順番にする
 func (g Grid) finalPath(ngoal *Node, closeSet map[int]*Node) (rx, ry []float64) {
+	log.Print("calculating final path... ")
 	rx = append(rx, g.gridPos(ngoal.Ix, g.MinX))
 	ry = append(ry, g.gridPos(ngoal.Iy, g.MinY))
 
@@ -340,6 +341,7 @@ func (g Grid) finalPath(ngoal *Node, closeSet map[int]*Node) (rx, ry []float64) 
 		n := closeSet[pind]
 		rx = append(rx, g.gridPos(n.Ix, g.MinX))
 		ry = append(ry, g.gridPos(n.Iy, g.MinY))
+		pind = n.Pind
 	}
 	return rx, ry
 }
