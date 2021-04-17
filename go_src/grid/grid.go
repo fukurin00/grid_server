@@ -1,6 +1,7 @@
 package grid
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -69,20 +70,28 @@ func (g *Grid) CalcObjMap(rr float64) {
 	g.Nodes = make(map[int]*Node)
 
 	var ind int
-	for ix := 0; ix < g.XWidth; ix++ {
-		x := g.CalcXYPosition(ix, g.MinX)
-		for iy := 0; iy < g.YWidth; iy++ {
-			y := g.CalcXYPosition(iy, g.MinY)
+	for iy := 0; iy < g.YWidth; iy++ {
+		y := g.CalcXYPosition(iy, g.MinY)
+		for ix := 0; ix < g.XWidth; ix++ {
+			x := g.CalcXYPosition(ix, g.MinX)
 
 			ind = iy*g.XWidth + ix
 			g.Nodes[ind] = NewNode(ind, ix, iy, x, y)
 			for _, ip := range g.OList {
 				d := math.Hypot(ip.X-float64(x), ip.Y-float64(y))
-				if d < rr {
+				if d <= rr {
 					g.ObjMap[ix][iy] = true
 					g.Nodes[ind].Obj = true
 					break
 				}
+			}
+			if g.Nodes[ind].Obj {
+				fmt.Print("*")
+			} else {
+				fmt.Print(".")
+			}
+			if ix == g.XWidth-1 {
+				fmt.Println()
 			}
 		}
 	}
@@ -91,7 +100,7 @@ func (g *Grid) CalcObjMap(rr float64) {
 		xwidth, ywidth`)
 	log.Print(g.MinX, g.MaxX, g.MinY, g.MaxY)
 	log.Print(g.XWidth, g.YWidth)
-	log.Print("max index is", ind)
+	log.Print("max index is ", ind)
 }
 
 // get x or y position from thats index
@@ -135,7 +144,6 @@ func (g Grid) VerifyGrid(index int) bool {
 	}
 
 	if g.Nodes[index].Obj {
-		log.Print(px, py, index, " is not verified")
 		return false
 	}
 	return true
@@ -240,7 +248,7 @@ func (g Grid) xyIndex(p float64, minp int) int {
 
 func heuristic(n1, n2 *Node) float64 {
 	w := 1.0
-	d := w * math.Hypot(float64(n1.X)-float64(n2.X), float64(n1.Y)-float64(n2.Y))
+	d := w * math.Hypot(float64(n1.Ix)-float64(n2.Ix), float64(n1.Iy)-float64(n2.Iy))
 	return d
 }
 
@@ -267,10 +275,12 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 	open_set := make(map[int]*Node)
 	close_set := make(map[int]*Node)
 	open_set[g.gridIndex(nstart)] = nstart
+	count := 0
 
 	for {
+		count += 1
 		if len(open_set) == 0 {
-			log.Print("open set is empty..")
+			log.Print("open set is empty.. count is ", count)
 			return rx, ry, false
 		}
 
@@ -284,7 +294,6 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 			}
 		}
 		cId := minKey
-
 		current := open_set[cId]
 
 		if current.Ix == ngoal.Ix && current.Iy == ngoal.Iy {
@@ -305,18 +314,18 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 		for _, v := range motion {
 			node = NewNodeG(current.Ix+int(v[0]), current.Iy+int(v[1]), current.Cost+v[2], cId)
 			nId = g.gridIndex(node)
-		}
 
-		if !g.VerifyGridP(g.gridIndex(node), hidden) {
-			continue
-		}
+			if !g.VerifyGridP(g.gridIndex(node), hidden) {
+				continue
+			}
 
-		if _, ok := close_set[nId]; ok {
-			continue
-		}
+			if _, ok := close_set[nId]; ok {
+				continue
+			}
 
-		if _, ok := open_set[nId]; !ok {
-			open_set[nId] = node
+			if _, ok := open_set[nId]; !ok {
+				open_set[nId] = node
+			}
 		}
 	}
 }
