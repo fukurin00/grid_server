@@ -47,8 +47,6 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 					log.Print(err)
 				}
 				fmt.Sscanf(rcd.Topic, "robot/path/%d", &id)
-				// log.Print("get ", rcd.Topic)
-				// log.Print(p)
 
 				if rob, ok := robotList[id]; ok {
 					rob.UpdatePath(rcd)

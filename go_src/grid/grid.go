@@ -165,6 +165,7 @@ func (g Grid) PosToGrid(x, y float64) int {
 	return iy*g.XWidth + ix
 }
 
+// return grids which robot is inside from current position x,y and radius r
 func (g Grid) CalcRobotGrid(x, y, rr float64) []int {
 	var overs []int
 	center := g.PosToGrid(x, y)
@@ -222,7 +223,6 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 			imgSet.Set(i, j, pixel)
 		}
 	}
-	//rImg := tools.ReverseSlice(imgSet.Pix)
 	stride := imgSet.Stride
 
 	insideWall := false
@@ -257,10 +257,8 @@ type Node struct {
 	Ix    int
 	Iy    int
 
-	X    float64
-	Y    float64
-	Cost float64
-	Pind int
+	X float64
+	Y float64
 
 	Obj bool //障害物ならtrue
 }

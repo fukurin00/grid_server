@@ -22,6 +22,7 @@ func gridPos(g *Grid, index, minP int) float64 {
 	return pos
 }
 
+// Astar planing (sx,sy) is start, (gx,gy) is goal point
 func AstarPlan(g *Grid, sx, sy, gx, gy float64, hidden []int) (rx, ry []float64, Notfail bool) {
 	nstart := NewNodeG(g.xyIndex(sx, g.MinX), g.xyIndex(sy, g.MinY), 0.0, -1)
 	ngoal := NewNodeG(g.xyIndex(gx, g.MinX), g.xyIndex(gy, g.MinY), 0.0, -1)
