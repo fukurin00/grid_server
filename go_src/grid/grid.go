@@ -15,6 +15,8 @@ import (
 
 // motion := [8][3]float64{{1.0, 0, 1.0},{0,1.0,1.0},{-1.0,0,1.0},{0,-1.0,1.0},{-1.0,-1.0,math.Sqrt(3)},{-1.0,1.0,math.Sqrt(3)},{1.0,-1.0,math.Sqrt(3)},{1.0,1.0,math.Sqrt(3)}}
 
+type GridState int
+
 type Grid struct {
 	Reso float64
 
@@ -40,14 +42,15 @@ type Point struct {
 	Y float64
 }
 
+// for testing
 func NewGridNo() *Grid {
 	g := new(Grid)
 	return g
 }
 
+// Grid Constructor
 func NewGrid(reso float64) *Grid {
 	g := new(Grid)
-
 	g.Reso = reso
 
 	return g
@@ -103,6 +106,11 @@ func (g *Grid) CalcObjMap(rr float64) {
 	log.Print("max index is ", ind)
 }
 
+// xyどちらかの座標を受取、idを返す
+func (g Grid) xyIndex(p float64, minp int) int {
+	return int(math.Round((p - float64(minp)) / g.Reso))
+}
+
 // get x or y position from thats index
 func (g Grid) CalcXYPosition(index, minP int) float64 {
 	pos := float64(index)*g.Reso + float64(minP)
@@ -126,6 +134,7 @@ func (g Grid) VerifyGridP(index int, hidden []int) bool {
 	return g.VerifyGrid(index)
 }
 
+// return true if index grid is passable
 func (g Grid) VerifyGrid(index int) bool {
 	if index > g.XWidth*g.YWidth-1 {
 		// log.Print("index ", index, " is overflow")
@@ -178,6 +187,7 @@ func (g Grid) CalcRobotGrid(x, y, rr float64) []int {
 	return overs
 }
 
+// read image file of ROS format
 func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 	mapConfig := msg.ReadImageYaml(yamlFile)
 	reso := mapConfig.Resolution
@@ -241,111 +251,7 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 	return nil
 }
 
-// xyどちらかの座標を受取、idを返す
-func (g Grid) xyIndex(p float64, minp int) int {
-	return int(math.Round((p - float64(minp)) / g.Reso))
-}
-
-func heuristic(n1, n2 *Node) float64 {
-	w := 1.0
-	d := w * math.Hypot(float64(n1.Ix)-float64(n2.Ix), float64(n1.Iy)-float64(n2.Iy))
-	return d
-}
-
-// nodeを受取idを返す
-func (g Grid) gridIndex(n *Node) int {
-	return n.Iy*g.XWidth + n.Ix
-}
-
-// x,yどちらかのindexを受取座標を返す
-func (g Grid) gridPos(index, minP int) float64 {
-	pos := float64(index)*g.Reso + float64(minP)
-	return pos
-}
-
-func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64, Notfail bool) {
-	nstart := NewNodeG(g.xyIndex(sx, g.MinX), g.xyIndex(sy, g.MinY), 0.0, -1)
-	ngoal := NewNodeG(g.xyIndex(gx, g.MinX), g.xyIndex(gy, g.MinY), 0.0, -1)
-
-	if !g.VerifyGridP(g.gridIndex(nstart), hidden) {
-		log.Print("start point is not verified")
-		return rx, ry, false
-	}
-
-	open_set := make(map[int]*Node)
-	close_set := make(map[int]*Node)
-	open_set[g.gridIndex(nstart)] = nstart
-	count := 0
-
-	for {
-		count += 1
-		if len(open_set) == 0 {
-			log.Print("open set is empty.. count is ", count)
-			return rx, ry, false
-		}
-
-		minCost := 9999999.9
-		minKey := -1
-		for key, val := range open_set {
-			calCost := val.Cost + heuristic(ngoal, val)
-			if calCost < minCost {
-				minCost = calCost
-				minKey = key
-			}
-		}
-		cId := minKey
-		current := open_set[cId]
-
-		if current.Ix == ngoal.Ix && current.Iy == ngoal.Iy {
-			log.Print("find goal")
-			ngoal.Pind = current.Pind
-			ngoal.Cost = current.Cost
-			rx, ry = g.finalPath(ngoal, close_set)
-			return rx, ry, true
-		}
-
-		delete(open_set, cId)
-
-		close_set[cId] = current
-
-		var nId int
-		var node *Node
-		motion := [8][3]float64{{1.0, 0, 1.0}, {0, 1.0, 1.0}, {-1.0, 0, 1.0}, {0, -1.0, 1.0}, {-1.0, -1.0, math.Sqrt(2)}, {-1.0, 1.0, math.Sqrt(2)}, {1.0, -1.0, math.Sqrt(2)}, {1.0, 1.0, math.Sqrt(2)}}
-		for _, v := range motion {
-			node = NewNodeG(current.Ix+int(v[0]), current.Iy+int(v[1]), current.Cost+v[2], cId)
-			nId = g.gridIndex(node)
-
-			if !g.VerifyGridP(g.gridIndex(node), hidden) {
-				continue
-			}
-
-			if _, ok := close_set[nId]; ok {
-				continue
-			}
-
-			if _, ok := open_set[nId]; !ok {
-				open_set[nId] = node
-			}
-		}
-	}
-}
-
-// 最後に経路の順番にする
-func (g Grid) finalPath(ngoal *Node, closeSet map[int]*Node) (rx, ry []float64) {
-	log.Print("calculating final path... ")
-	rx = append(rx, g.gridPos(ngoal.Ix, g.MinX))
-	ry = append(ry, g.gridPos(ngoal.Iy, g.MinY))
-
-	pind := ngoal.Pind
-	for pind != -1 {
-		n := closeSet[pind]
-		rx = append(rx, g.gridPos(n.Ix, g.MinX))
-		ry = append(ry, g.gridPos(n.Iy, g.MinY))
-		pind = n.Pind
-	}
-	return rx, ry
-}
-
+// each Grid
 type Node struct {
 	Index int
 	Ix    int
@@ -359,6 +265,7 @@ type Node struct {
 	Obj bool //障害物ならtrue
 }
 
+// grid constructor
 func NewNode(index, ix, iy int, x, y float64) *Node {
 	n := new(Node)
 	n.Index = index
@@ -368,14 +275,5 @@ func NewNode(index, ix, iy int, x, y float64) *Node {
 	n.X = x
 	n.Y = y
 
-	return n
-}
-
-func NewNodeG(ix, iy int, cost float64, pind int) *Node {
-	n := new(Node)
-	n.Ix = ix
-	n.Iy = iy
-	n.Cost = cost
-	n.Pind = pind
 	return n
 }
