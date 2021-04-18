@@ -2,10 +2,31 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"sync"
+	"time"
 
 	grid "github.com/fukurin00/grid_server/grid"
 	robot "github.com/fukurin00/grid_server/robot"
+	"github.com/fukurin00/grid_server/synerex"
+	sxutil "github.com/synerex/synerex_sxutil"
 )
+
+func publish(rob *robot.RobotStatus, rx, ry []float64) {
+	for {
+		// 経路が成功すれば新しいpathを送る
+		m, err := rob.MakePathCmd(rx, ry)
+		if err != nil {
+			log.Print(err)
+		}
+		log.Print("send new path command")
+		err2 := robot.SendCmdRobot(m)
+		if err2 != nil {
+			log.Print(err2)
+		}
+		time.Sleep(time.Second)
+	}
+}
 
 func main() {
 	var yamlFile string = "../../map/willow_garage.yaml"
@@ -57,4 +78,10 @@ func main() {
 	}
 	fmt.Println()
 
+	wg := sync.WaitGroup{} //wait exit for gorouting
+	wg.Add(1)
+	synerex.RunSynerex()
+	publish(rob, rx, ry)
+	wg.Wait()
+	sxutil.CallDeferFunctions()
 }
