@@ -247,7 +247,7 @@ func (r RobotStatus) MakePathCmd(rx, ry []float64) (RobotMsg, error) {
 		Poses:  poses,
 	}
 
-	jm, err := json.Marshal(planm)
+	jm, err := json.MarshalIndent(planm, "", " ")
 	if err != nil {
 		return RobotMsg{}, err
 	}
