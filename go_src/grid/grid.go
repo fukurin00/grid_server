@@ -15,8 +15,15 @@ import (
 
 // motion := [8][3]float64{{1.0, 0, 1.0},{0,1.0,1.0},{-1.0,0,1.0},{0,-1.0,1.0},{-1.0,-1.0,math.Sqrt(3)},{-1.0,1.0,math.Sqrt(3)},{1.0,-1.0,math.Sqrt(3)},{1.0,1.0,math.Sqrt(3)}}
 
-type GridState int
+type NodeState int
 
+const (
+	Object NodeState = iota
+	Route
+	Passable
+)
+
+//grid information
 type Grid struct {
 	Reso float64
 
@@ -25,8 +32,9 @@ type Grid struct {
 	MinY int
 	MaxY int
 
-	XWidth int
-	YWidth int
+	XWidth   int
+	YWidth   int
+	MaxIndex int
 
 	OList []Point
 	Ox    []float64
@@ -54,6 +62,34 @@ func NewGrid(reso float64) *Grid {
 	g.Reso = reso
 
 	return g
+}
+
+// each Grid
+type Node struct {
+	Index int
+	Ix    int
+	Iy    int
+
+	X float64
+	Y float64
+
+	Obj   bool //障害物ならtrue
+	State NodeState
+}
+
+// grid constructor
+func NewNode(index, ix, iy int, x, y float64) *Node {
+	n := new(Node)
+	n.Index = index
+	n.Ix = ix
+	n.Iy = iy
+
+	n.X = x
+	n.Y = y
+
+	n.State = Passable
+
+	return n
 }
 
 // Calculating Object Map on Grid
@@ -85,9 +121,12 @@ func (g *Grid) CalcObjMap(rr float64) {
 				if d <= rr {
 					g.ObjMap[ix][iy] = true
 					g.Nodes[ind].Obj = true
+					g.Nodes[ind].State = Object
 					break
 				}
 			}
+
+			// display map in terminal
 			if g.Nodes[ind].Obj {
 				fmt.Print("*")
 			} else {
@@ -98,16 +137,14 @@ func (g *Grid) CalcObjMap(rr float64) {
 			}
 		}
 	}
+	g.MaxIndex = ind
 	log.Print("complete calculate objmap")
-	log.Print(`minX, maxX, minY, maxY
-		xwidth, ywidth`)
-	log.Print(g.MinX, g.MaxX, g.MinY, g.MaxY)
-	log.Print(g.XWidth, g.YWidth)
-	log.Print("max index is ", ind)
+	log.Print("resolution, minX, maxX, minY, maxY, xwidth, ywidth, maxIndex")
+	log.Print(g.Reso, g.MinX, g.MaxX, g.MinY, g.MaxY, g.XWidth, g.YWidth, g.MaxIndex)
 }
 
 // xyどちらかの座標を受取、idを返す
-func (g Grid) xyIndex(p float64, minp int) int {
+func (g Grid) XyIndex(p float64, minp int) int {
 	return int(math.Round((p - float64(minp)) / g.Reso))
 }
 
@@ -136,8 +173,11 @@ func (g Grid) VerifyGridP(index int, hidden []int) bool {
 
 // return true if index grid is passable
 func (g Grid) VerifyGrid(index int) bool {
-	if index > g.XWidth*g.YWidth-1 {
+	if index > g.MaxIndex {
 		// log.Print("index ", index, " is overflow")
+		return false
+	}
+	if _, ok := g.Nodes[index]; !ok {
 		return false
 	}
 	px, py := g.CalcPosition(index)
@@ -160,8 +200,8 @@ func (g Grid) VerifyGrid(index int) bool {
 
 //from position to return node index
 func (g Grid) PosToGrid(x, y float64) int {
-	ix := g.xyIndex(x, g.MinX)
-	iy := g.xyIndex(y, g.MinY)
+	ix := g.XyIndex(x, g.MinX)
+	iy := g.XyIndex(y, g.MinY)
 	return iy*g.XWidth + ix
 }
 
@@ -249,29 +289,4 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 	}
 	log.Print("complete loading map", mapFile)
 	return nil
-}
-
-// each Grid
-type Node struct {
-	Index int
-	Ix    int
-	Iy    int
-
-	X float64
-	Y float64
-
-	Obj bool //障害物ならtrue
-}
-
-// grid constructor
-func NewNode(index, ix, iy int, x, y float64) *Node {
-	n := new(Node)
-	n.Index = index
-	n.Ix = ix
-	n.Iy = iy
-
-	n.X = x
-	n.Y = y
-
-	return n
 }

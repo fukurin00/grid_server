@@ -24,11 +24,15 @@ func gridPos(g *Grid, index, minP int) float64 {
 
 // Astar planing (sx,sy) is start, (gx,gy) is goal point
 func AstarPlan(g *Grid, sx, sy, gx, gy float64, hidden []int) (rx, ry []float64, Notfail bool) {
-	nstart := NewNodeG(g.xyIndex(sx, g.MinX), g.xyIndex(sy, g.MinY), 0.0, -1)
-	ngoal := NewNodeG(g.xyIndex(gx, g.MinX), g.xyIndex(gy, g.MinY), 0.0, -1)
+	nstart := NewNodeG(g.XyIndex(sx, g.MinX), g.XyIndex(sy, g.MinY), 0.0, -1)
+	ngoal := NewNodeG(g.XyIndex(gx, g.MinX), g.XyIndex(gy, g.MinY), 0.0, -1)
 
 	if !g.VerifyGridP(gridIndex(g, nstart), hidden) {
 		log.Print("start point is not verified")
+		return rx, ry, false
+	}
+	if !g.VerifyGridP(gridIndex(g, ngoal), hidden) {
+		log.Print("goal point is not verified")
 		return rx, ry, false
 	}
 
@@ -92,7 +96,7 @@ func AstarPlan(g *Grid, sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 
 // 最後に経路の順番にする
 func finalPath(g *Grid, ngoal *AstarNode, closeSet map[int]*AstarNode) (rx, ry []float64) {
-	log.Print("calculating final path... ")
+	// log.Print("calculating final path... ")
 	rx = append(rx, gridPos(g, ngoal.Ix, g.MinX))
 	ry = append(ry, gridPos(g, ngoal.Iy, g.MinY))
 
