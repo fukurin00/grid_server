@@ -279,6 +279,7 @@ func (g Grid) AstarPlan(sx, sy, gx, gy float64, hidden []int) (rx, ry []float64,
 			log.Print("find goal")
 			ngoal.Pind = current.Pind
 			ngoal.Cost = current.Cost
+			break
 		}
 
 		delete(open_set, cId)
