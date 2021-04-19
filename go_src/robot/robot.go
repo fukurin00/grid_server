@@ -15,9 +15,19 @@ import (
 	sxmqtt "github.com/synerex/proto_mqtt"
 )
 
+type RobotMode int
+
+const (
+	Arrive RobotMode = iota
+	Moving
+	Stay
+)
+
 //RobotStatus robot information
 type RobotStatus struct {
-	Id        uint32                `json:"id"`
+	Id   uint32    `json:"id"`
+	Mode RobotMode `json:"mode"`
+
 	GridReso  float64               `json:"gridResolution"`
 	PoseStamp msg.ROS_PoseStamped   `json:"pose"`
 	Path      []msg.ROS_PoseStamped `json:"path"`
@@ -43,6 +53,7 @@ func NewRobot(id uint32, radius, vel, rotVel, resolution float64, mapFile, yamlF
 	s := new(RobotStatus)
 
 	s.Id = id
+	s.Mode = Stay
 	s.Radius = radius
 	s.Velocity = vel
 	s.RotateVel = rotVel
@@ -78,6 +89,15 @@ func (r *RobotStatus) UpdatePose(rcd *sxmqtt.MQTTRecord) {
 	fmt.Sscanf(rcd.Topic, "robot/pose/%d", &id)
 
 	r.PoseStamp = pose
+	if len(r.Path) > 0 {
+		// Arrive destination
+		if r.Mode == Moving && pose.Pose.Position.Distance(r.Path[len(r.Path)-1].Pose.Position) <= 0.5 {
+			log.Print("robot", id, "arrive destination")
+			r.Path = nil
+			r.EstPose = nil
+			r.Mode = Arrive
+		}
+	}
 
 }
 
@@ -96,6 +116,7 @@ func (r *RobotStatus) UpdatePath(rcd *sxmqtt.MQTTRecord) {
 	if r.RGrid.Nodes != nil {
 		r.calcPathMore()
 	}
+	r.Mode = Moving
 }
 
 // a地点からb地点へ向かうときの回転角の計算

@@ -21,8 +21,8 @@ import (
 
 var (
 	robotList map[int]*robot.RobotStatus // robot list
-	yamlFile  string                     = "../map/willow_garage.yaml"
-	mapFile   string                     = "../map/willow_garage.pgm"
+	yamlFile  string                     = "../map/willow_garage_v_edited.yaml"
+	mapFile   string                     = "../map/willow_garage_v_edited.pgm"
 	span      float64                    = 10 //crush check span
 	//mode      string                     = "reroute"
 )
@@ -50,6 +50,8 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 
 				if rob, ok := robotList[id]; ok {
 					rob.UpdatePath(rcd)
+
+					// 他のロボットの経路と共有する
 					for key, val := range robotList {
 						if key != id && len(val.EstPose) > 0 { //multi robot already had path
 							// log.Print("check path ", id, " and ", key)
@@ -145,9 +147,9 @@ func main() {
 	wg := sync.WaitGroup{} //wait exit for gorouting
 
 	robotList = make(map[int]*robot.RobotStatus)
-	robotList[1] = robot.NewRobot(1, 0.5, 1.5, 1.5, 0.5, mapFile, yamlFile)
-	robotList[2] = robot.NewRobot(2, 1, 1.5, 1.5, 0.5, mapFile, yamlFile)
-	robotList[3] = robot.NewRobot(3, 1, 1.5, 1.5, 0.5, mapFile, yamlFile)
+	robotList[1] = robot.NewRobot(1, 1, 1.5, 1.0, 0.5, mapFile, yamlFile)
+	robotList[2] = robot.NewRobot(2, 0.5, 1.5, 1.0, 0.5, mapFile, yamlFile)
+	robotList[3] = robot.NewRobot(3, 1, 1.5, 1.0, 0.5, mapFile, yamlFile)
 
 	wg.Add(1)
 	synerex.RunSynerex()

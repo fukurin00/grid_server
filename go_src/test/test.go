@@ -3,13 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	grid "github.com/fukurin00/grid_server/grid"
 	robot "github.com/fukurin00/grid_server/robot"
-	"github.com/fukurin00/grid_server/synerex"
-	sxutil "github.com/synerex/synerex_sxutil"
 )
 
 func publish(rob *robot.RobotStatus, rx, ry []float64) {
@@ -29,11 +26,11 @@ func publish(rob *robot.RobotStatus, rx, ry []float64) {
 }
 
 func main() {
-	var yamlFile string = "../../map/willow_garage.yaml"
-	var mapFile string = "../../map/willow_garage.pgm"
+	var yamlFile string = "../../map/willow_garage_v_edited.yaml"
+	var mapFile string = "../../map/willow_garage_v_edited.pgm"
 
-	sx := 13.0
-	sy := -28.0
+	sx := -14.0
+	sy := -31.0
 	gx := -4.0
 	gy := 5.0
 
@@ -78,10 +75,10 @@ func main() {
 	}
 	fmt.Println()
 
-	wg := sync.WaitGroup{} //wait exit for gorouting
-	wg.Add(1)
-	synerex.RunSynerex()
-	publish(rob, rx, ry)
-	wg.Wait()
-	sxutil.CallDeferFunctions()
+	// wg := sync.WaitGroup{} //wait exit for gorouting
+	// wg.Add(1)
+	// synerex.RunSynerex()
+	// publish(rob, rx, ry)
+	// wg.Wait()
+	// sxutil.CallDeferFunctions()
 }

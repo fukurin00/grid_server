@@ -1,7 +1,6 @@
 package grid
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -127,14 +126,14 @@ func (g *Grid) CalcObjMap(rr float64) {
 			}
 
 			// display map in terminal
-			if g.Nodes[ind].Obj {
-				fmt.Print("*")
-			} else {
-				fmt.Print(".")
-			}
-			if ix == g.XWidth-1 {
-				fmt.Println()
-			}
+			// if g.Nodes[ind].Obj {
+			// 	fmt.Print("*")
+			// } else {
+			// 	fmt.Print(".")
+			// }
+			// if ix == g.XWidth-1 {
+			// 	fmt.Println()
+			// }
 		}
 	}
 	g.MaxIndex = ind
@@ -228,6 +227,14 @@ func (g Grid) CalcRobotGrid(x, y, rr float64) []int {
 	return overs
 }
 
+type ROSImageData struct {
+	x     float64
+	y     float64
+	pixel uint8
+	ix    int
+	iy    int
+}
+
 // read image file of ROS format
 func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 	mapConfig := msg.ReadImageYaml(yamlFile)
@@ -252,24 +259,48 @@ func (g *Grid) ReadMapImage(yamlFile, mapFile string) error {
 
 	bound := imageData.Bounds()
 	imgSet := image.NewGray(bound)
+	log.Print("bound is", bound)
 
 	maxX := bound.Max.X
 	maxY := bound.Max.Y
 
-	for i := 0; i < maxX; i++ {
-		for j := 0; j < maxY; j++ {
+	var imgMap []ROSImageData
+
+	for j := 0; j < maxY; j++ {
+		for i := 0; i < maxX; i++ {
 			oldPix := imageData.At(i, j)
 			pixel := color.GrayModel.Convert(oldPix)
+			pixelU := color.GrayModel.Convert(pixel).(color.Gray).Y
 			imgSet.Set(i, j, pixel)
+			imData := ROSImageData{
+				x:     float64(i)*reso + origins[0],
+				y:     float64(j)*reso + origins[1],
+				ix:    i,
+				iy:    j,
+				pixel: pixelU,
+			}
+			imgMap = append(imgMap, imData)
 		}
 	}
+
+	revImgSet := imgSet
+	revImgSet.Pix = tools.ReverseSlice(imgSet.Pix)
+	// file2, err := os.OpenFile("test_test.png", os.O_WRONLY|os.O_CREATE, 0644)
+	// if err != nil {
+	// 	return err
+	// }
+	// png.Encode(file2, revImgSet)
+	// defer file.Close()
+
 	stride := imgSet.Stride
 
 	insideWall := false
-	for i, pixel := range imgSet.Pix {
+	revPixs := tools.ReverseSlice(imgSet.Pix)
+	for i, pixel := range revPixs {
 		if i%2 != 0 {
 			continue
 		}
+
 		if pixel == 0 {
 			if insideWall {
 				continue
