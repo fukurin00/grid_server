@@ -230,24 +230,24 @@ func (r RobotStatus) MakePathCmd(rx, ry []float64) (RobotMsg, error) {
 	topic := fmt.Sprintf("robot/cmd/path/%d", r.Id)
 	var poses []msg.ROS_PoseStamped
 
-	for i, x := range rx {
-		for _, y := range ry {
-			pos := msg.ROS_PoseStamped{
-				Header: msg.ROS_header{Seq: uint32(i)},
-				Pose: msg.Pose{
-					Position: msg.Point{X: x, Y: y, Z: 0.0},
-				},
-			}
-			poses = append(poses, pos)
+	for i := 0; i < len(rx); i++ {
+		x := rx[i]
+		y := ry[i]
+		pos := msg.ROS_PoseStamped{
+			Header: msg.ROS_header{Seq: uint32(i)},
+			Pose: msg.Pose{
+				Position: msg.Point{X: x, Y: y, Z: 0.0},
+			},
 		}
+		poses = append(poses, pos)
 	}
 
-	plan := msg.Path{
+	planm := msg.Path{
 		Header: msg.ROS_header{},
 		Poses:  poses,
 	}
 
-	jm, err := json.Marshal(plan)
+	jm, err := json.MarshalIndent(planm, "", " ")
 	if err != nil {
 		return RobotMsg{}, err
 	}

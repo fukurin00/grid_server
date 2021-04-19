@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	grid "github.com/fukurin00/grid_server/grid"
 	msg "github.com/fukurin00/grid_server/msg"
 	robot "github.com/fukurin00/grid_server/robot"
 	synerex "github.com/fukurin00/grid_server/synerex"
@@ -22,8 +23,8 @@ var (
 	robotList map[int]*robot.RobotStatus // robot list
 	yamlFile  string                     = "../map/willow_garage.yaml"
 	mapFile   string                     = "../map/willow_garage.pgm"
-	span      float64                    = 10 //crush check
-	mode      string                     = "reroute"
+	span      float64                    = 10 //crush check span
+	//mode      string                     = "reroute"
 )
 
 func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
@@ -46,8 +47,6 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 					log.Print(err)
 				}
 				fmt.Sscanf(rcd.Topic, "robot/path/%d", &id)
-				// log.Print("get ", rcd.Topic)
-				// log.Print(p)
 
 				if rob, ok := robotList[id]; ok {
 					rob.UpdatePath(rcd)
@@ -60,7 +59,7 @@ func supplyMQTTCallback(clt *sxutil.SXServiceClient, sp *api.Supply) {
 							if out.Check {
 								// かぶる場所をふさいで再計算
 								log.Print("start new path planning", key, " and ", id)
-								rx, ry, ok := rob.RGrid.AstarPlan(rob.PoseStamp.Pose.Position.X, rob.PoseStamp.Pose.Position.Y, rob.Path[len(rob.Path)-1].Pose.Position.X, rob.Path[len(rob.Path)-1].Pose.Position.Y, out.Grids)
+								rx, ry, ok := grid.AstarPlan(rob.RGrid, rob.PoseStamp.Pose.Position.X, rob.PoseStamp.Pose.Position.Y, rob.Path[len(rob.Path)-1].Pose.Position.X, rob.Path[len(rob.Path)-1].Pose.Position.Y, out.Grids)
 
 								if ok {
 									// 経路が成功すれば新しいpathを送る

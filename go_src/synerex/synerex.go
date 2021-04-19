@@ -90,6 +90,9 @@ func StatePublish(topic string, content []byte) error {
 }
 
 func GeneMqttSupply(topic string, content []byte) *sxutil.SupplyOpts {
+	if len(content) > 268435455 {
+		log.Print("message size is overflow!!", len(content))
+	}
 	rcd := sxmqtt.MQTTRecord{
 		Topic:  topic,
 		Record: content,
@@ -100,7 +103,7 @@ func GeneMqttSupply(topic string, content []byte) *sxutil.SupplyOpts {
 	}
 	cont := api.Content{Entity: out}
 	smo := sxutil.SupplyOpts{
-		Name:  "GridStatePublish",
+		Name:  "GridMQTTPublish",
 		Cdata: &cont,
 	}
 	return &smo
